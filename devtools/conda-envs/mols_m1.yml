@@ -1,4 +1,4 @@
-name: mols_test
+name: mols
 channels:
   - conda-forge
 dependencies:
