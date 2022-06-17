@@ -45,6 +45,7 @@ For line by line instructions on an installation via docker, please visit [molSi
 ## Tutorials
 
 A set of tutorials covering common use cases is available at the [Kulik group webpage](http://hjkgrp.mit.edu/molSimplify-tutorials).
+The ANN tutorial can be executed from ./example with: molsimplify -i ann_tutorial.in
 
 ## Documentation
 
