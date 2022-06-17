@@ -27,8 +27,8 @@ We currently recommend installation via the [Conda](https://conda.io/docs/) pack
    ```
 4. Activate the conda environment you just created. Go back to the root directory of molSimplify (where the setup.py file locates). Local install with pip.
    ```bash
-   conda activate mols_test
-   cd ..
+   conda activate mols
+   cd ../..
    pip install -e .
    ```
 5. **(For M1 Macs only)** Install the M1-compatible version of Tensorflow by running `source devtools/conda-envs/install_tensorflow_m1.sh`.
