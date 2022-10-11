@@ -67,10 +67,10 @@ def accquire_file(path):
             ### value | path
             for i, lines in enumerate(f):
                 print(('read line: ' + str(i)))
+                ll = lines.strip('\n\r').split(",")
+                name = ll[0]
                 if i == 0:
                     # this is the first line
-                    ll = lines.strip('\n\r').split(",")
-                    name = ll[0]
                     # y_value_name = ll[1]
                     # check if path exists:
                     # paths_name = ll[2].strip('/') + '/'+name+'.xyz'
@@ -79,9 +79,6 @@ def accquire_file(path):
                         custom_names = [ll[i] for i in range(4, len(ll))]
 
                 else:
-                    ll = lines.strip('\n\r').split(",")
-                    # print(ll)
-                    name = ll[0]
                     y_value = ll[1]
                     # check if path exists:
                     this_path = '/'+ll[2].strip('/') + '/'+name+'.xyz'

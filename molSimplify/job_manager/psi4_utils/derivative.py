@@ -2,6 +2,7 @@ import warnings
 import os
 import operator
 
+
 def get_subfolders(path: str = "./") -> list:
     files = os.listdir(path)
     folders = []

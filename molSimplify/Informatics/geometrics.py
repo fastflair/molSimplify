@@ -20,7 +20,8 @@ def get_percentile_csd_geometrics(geometrics_csd, geodict, geotype, maxdent,
     jsonpath = resource_filename(Requirement.parse("molSimplify"), path2metric)
     if not isinstance(geometrics_csd, dict):
         print("loading csd geometrics...")
-        geometrics_csd = json.load(open(jsonpath, "r"))
+        with open(jsonpath, "r") as f:
+            geometrics_csd = json.load(f)
     percentile_dict = {}
     for k in metrics:
         percentile_dict[k] = [round(geodict[k], 2),

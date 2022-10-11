@@ -1,5 +1,5 @@
 from molSimplify.Scripts.cellbuilder_tools import *
-from molSimplify.Classes import mol3D
+from molSimplify.Classes.mol3D import mol3D
 from molSimplify.Informatics.autocorrelation import*
 from molSimplify.Informatics.misc_descriptors import*
 from molSimplify.Informatics.graph_analyze import*
@@ -12,7 +12,7 @@ from scipy import sparse
 import itertools
 from molSimplify.Informatics.MOF.PBC_functions import *
 
-#### NOTE: In addition to molSimplify's dependencies, this portion requires 
+#### NOTE: In addition to molSimplify's dependencies, this portion requires
 #### pymatgen to be installed. The RACs are intended to be computed
 #### on the primitive cell of the material. You can compute them
 #### using the commented out snippet of code if necessary.
@@ -83,7 +83,7 @@ def make_MOF_SBU_RACs(SBUlist, SBU_subgraph, molcif, depth, name,cell,anchoring_
     descriptors = []
     if sbupath:
         sbu_descriptor_path = os.path.dirname(sbupath)
-        if os.path.getsize(sbu_descriptor_path+'/sbu_descriptors.csv')>0:            
+        if os.path.getsize(sbu_descriptor_path+'/sbu_descriptors.csv')>0:
             sbu_descriptors = pd.read_csv(sbu_descriptor_path+'/sbu_descriptors.csv')
         else:
             sbu_descriptors = pd.DataFrame()
@@ -102,7 +102,7 @@ def make_MOF_SBU_RACs(SBUlist, SBU_subgraph, molcif, depth, name,cell,anchoring_
         for val in SBU:
             SBU_mol.addAtom(molcif.getAtom(val))
         SBU_mol.graph = SBU_subgraph[i].todense()
-        
+
         """""""""
         For each linker connected to the SBU, find the lc atoms for the lc-RACs.
         """""""""
@@ -124,14 +124,14 @@ def make_MOF_SBU_RACs(SBUlist, SBU_subgraph, molcif, depth, name,cell,anchoring_
                 """""""""
                 Generate all of the lc autocorrelations (from the connecting atoms)
                 """""""""
-                results_dictionary = generate_atomonly_autocorrelations(temp_mol, link_list, loud=False, depth=depth, oct=False, polarizability=False,Zeff=True)
+                results_dictionary = generate_atomonly_autocorrelations(temp_mol, link_list, loud=False, depth=depth, oct=False, polarizability=False,Gval=True)
                 descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'lc','all')
                 # print('1',len(descriptor_names),len(descriptors))
-                results_dictionary = generate_atomonly_deltametrics(temp_mol, link_list, loud=False, depth=depth, oct=False, polarizability=False,Zeff=True)
+                results_dictionary = generate_atomonly_deltametrics(temp_mol, link_list, loud=False, depth=depth, oct=False, polarizability=False,Gval=True)
                 descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'D_lc','all')
                 # print('2',len(descriptor_names),len(descriptors))
                 """""""""
-                If heteroatom functional groups exist (anything that is not C or H, so methyl is missed, also excludes anything lc, so carboxylic metal-coordinating oxygens skipped), 
+                If heteroatom functional groups exist (anything that is not C or H, so methyl is missed, also excludes anything lc, so carboxylic metal-coordinating oxygens skipped),
                 compile the list of atoms
                 """""""""
                 functional_atoms = []
@@ -147,12 +147,12 @@ def make_MOF_SBU_RACs(SBUlist, SBU_subgraph, molcif, depth, name,cell,anchoring_
                         if not set({temp_mol.atoms[jj].sym}) & set({"H"}):
                             functional_atoms.append(jj)
                 #print(functional_atoms)
-            
+
                 if len(functional_atoms) > 0:
-                    results_dictionary = generate_atomonly_autocorrelations(temp_mol, functional_atoms , loud=False, depth=depth, oct=False, polarizability=False,Zeff=True)
+                    results_dictionary = generate_atomonly_autocorrelations(temp_mol, functional_atoms , loud=False, depth=depth, oct=False, polarizability=False,Gval=True)
                     descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'func','all')
                     # print('3',len(descriptor_names),len(descriptors))
-                    results_dictionary = generate_atomonly_deltametrics(temp_mol, functional_atoms , loud=False, depth=depth, oct=False, polarizability=False,Zeff=True)
+                    results_dictionary = generate_atomonly_deltametrics(temp_mol, functional_atoms , loud=False, depth=depth, oct=False, polarizability=False,Gval=True)
                     descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'D_func','all')
                     # print('4',len(descriptor_names),len(descriptors))
                 else:
@@ -187,14 +187,14 @@ def make_MOF_SBU_RACs(SBUlist, SBU_subgraph, molcif, depth, name,cell,anchoring_
         """""""""
         Generate all of the SBU based RACs (full scope, mc)
         """""""""
-        results_dictionary = generate_full_complex_autocorrelations(SBU_mol,depth=depth,loud=False,flag_name=False,Zeff=True)
+        results_dictionary = generate_full_complex_autocorrelations(SBU_mol,depth=depth,loud=False,flag_name=False,Gval=True)
         descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'f','all')
         # print('6',len(descriptor_names),len(descriptors))
         #### Now starts at every metal on the graph and autocorrelates
-        results_dictionary = generate_multimetal_autocorrelations(molcif,depth=depth,loud=False,Zeff=True)
+        results_dictionary = generate_multimetal_autocorrelations(molcif,depth=depth,loud=False,Gval=True)
         descriptor_names, descriptors =  append_descriptors(descriptor_names, descriptors, results_dictionary['colnames'],results_dictionary['results'],'mc','all')
         # print('7',len(descriptor_names),len(descriptors))
-        results_dictionary = generate_multimetal_deltametrics(molcif,depth=depth,loud=False,Zeff=True)
+        results_dictionary = generate_multimetal_deltametrics(molcif,depth=depth,loud=False,Gval=True)
         descriptor_names, descriptors = append_descriptors(descriptor_names, descriptors,results_dictionary['colnames'],results_dictionary['results'],'D_mc','all')
         # print('8',len(descriptor_names),len(descriptors))
         descriptor_names += ['name']
@@ -237,7 +237,7 @@ def make_MOF_linker_RACs(linkerlist, linker_subgraphlist, molcif, depth, name, c
             linker_mol_fcoords_connected = XYZ_connected(cell, linker_mol_cart_coords, linker_mol_adj_mat)
             writeXYZandGraph(xyzname, linker_mol_atom_labels, cell, linker_mol_fcoords_connected, linker_mol_adj_mat)
         allowed_strings = ['electronegativity', 'nuclear_charge', 'ident', 'topology', 'size','effective_nuclear_charge']
-        labels_strings = ['chi', 'Z', 'I', 'T', 'S','Zeff']
+        labels_strings = ['chi', 'Z', 'I', 'T', 'S','Gval']
         colnames = []
         lig_full = list()
         for ii, properties in enumerate(allowed_strings):
@@ -326,7 +326,7 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
     writeXYZandGraph(xyzpath, allatomtypes, cell_v, fcoords, adj_matrix.todense())
     molcif,_,_,_,_ = import_from_cif(data, True)
     molcif.graph = adj_matrix.todense()
-    
+
     """""""""
     check number of connected components.
     if more than 1: it checks if the structure is interpenetrated. Fails if no metal in one of the connected components (identified by the graph).
@@ -365,7 +365,7 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
     removelist = set()
     Logs the atom types of the connecting atoms to the metal in logpath.
     """""""""
-    SBUlist = set() 
+    SBUlist = set()
     metal_list = set([at for at in molcif.findMetal(transition_metals_only=False)])
     # print('##### METAL LIST2', metal_list, [molcif.getAtom(val).symbol() for val in list(metal_list)])
     # print('##### all LIST2', metal_list, [val.symbol() for val in molcif.atoms])
@@ -380,25 +380,25 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
         cn_atom = ",".join([at for at in bonded_atoms_types])
         tmpstr = "atom %i with type of %s found to have %i coordinates with atom types of %s\n"%(metal,allatomtypes[metal],cn,cn_atom)
         write2file(logpath,"/%s.log"%name,tmpstr)
-    [removelist.update(set([atom])) for atom in SBUlist if all((molcif.getAtom(val).ismetal() or molcif.getAtom(val).symbol().upper() == 'H') for val in molcif.getBondedAtomsSmart(atom))] 
+    [removelist.update(set([atom])) for atom in SBUlist if all((molcif.getAtom(val).ismetal() or molcif.getAtom(val).symbol().upper() == 'H') for val in molcif.getBondedAtomsSmart(atom))]
     """""""""
     adding hydrogens connected to atoms which are only connected to metals. In particular interstitial OH, like in UiO SBU.
     """""""""
     for atom in SBUlist:
         for val in molcif.getBondedAtomsSmart(atom):
             if molcif.getAtom(val).symbol().upper() == 'H':
-               removelist.update(set([val])) 
+               removelist.update(set([val]))
 
     """""""""
     At this point:
-    The remove list only removes metals and things ONLY connected to metals or hydrogens. 
-    Thus the coordinating atoms are double counted in the linker.                         
-    
+    The remove list only removes metals and things ONLY connected to metals or hydrogens.
+    Thus the coordinating atoms are double counted in the linker.
+
     step 2: organic part
-        removelist = linkers are all atoms - the removelist (assuming no bond between 
+        removelist = linkers are all atoms - the removelist (assuming no bond between
         organiclinkers)
     """""""""
-    allatoms = set(range(0, adj_matrix.shape[0])) 
+    allatoms = set(range(0, adj_matrix.shape[0]))
     linkers = allatoms - removelist
     linker_list, linker_subgraphlist = get_closed_subgraph(linkers.copy(), removelist.copy(), adj_matrix)
     connections_list = copy.deepcopy(linker_list)
@@ -411,7 +411,7 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
     anc_atoms = set()
     for linker in linker_list:
         for atom_linker in linker:
-            bonded2atom = np.nonzero(adj_matrix[atom_linker,:])[1] 
+            bonded2atom = np.nonzero(adj_matrix[atom_linker,:])[1]
             if set(bonded2atom) & metal_list:
                 anc_atoms.add(atom_linker)
     """""""""
@@ -429,17 +429,17 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
     long_ligands = False
     max_min_linker_length , min_max_linker_length = (0,100)
     for ii, atoms_list in reversed(list(enumerate(linker_list))): #Loop over all linker subgraphs
-        linkeranchors_list = set() 
-        linkeranchors_atoms = set() 
-        sbuanchors_list = set() 
+        linkeranchors_list = set()
+        linkeranchors_atoms = set()
+        sbuanchors_list = set()
         sbu_connect_list = set()
         """""""""
-        Here, we are trying to identify what is actually a linker and what is a ligand. 
-        To do this, we check if something is connected to more than one SBU. Set to     
-        handle cases where primitive cell is small, ambiguous cases are recorded.       
+        Here, we are trying to identify what is actually a linker and what is a ligand.
+        To do this, we check if something is connected to more than one SBU. Set to
+        handle cases where primitive cell is small, ambiguous cases are recorded.
         """""""""
         for iii,atoms in enumerate(atoms_list): #loop over all atoms in a linker
-            connected_atoms = np.nonzero(adj_matrix[atoms,:])[1] 
+            connected_atoms = np.nonzero(adj_matrix[atoms,:])[1]
             for kk, sbu_atoms_list in enumerate(initial_SBU_list): #loop over all SBU subgraphs
                 for sbu_atoms in sbu_atoms_list: #Loop over SBU
                     if sbu_atoms in connected_atoms:
@@ -447,14 +447,14 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
                         linkeranchors_atoms.add(atoms)
                         sbuanchors_list.add(sbu_atoms)
                         sbu_connect_list.add(kk) #Add if unique SBUs
-        min_length,max_length = linker_length(linker_subgraphlist[ii].todense(),linkeranchors_list) 
+        min_length,max_length = linker_length(linker_subgraphlist[ii].todense(),linkeranchors_list)
 
         if len(linkeranchors_list) >=2 : # linker, and in one ambigous case, could be a ligand.
             if len(sbu_connect_list) >= 2: #Something that connects two SBUs is certain to be a linker
                 max_min_linker_length = max(min_length,max_min_linker_length)
                 min_max_linker_length = min(max_length,min_max_linker_length)
                 continue
-            else: 
+            else:
                 # check number of times we cross PBC :
                 # TODO: we still can fail in multidentate ligands!
                 linker_cart_coords = np.array([
@@ -466,16 +466,16 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
                 sbu_temp = list(sbu_temp)
                 sbu_cart_coords = np.array([
                     at.coords() for at in [molcif.getAtom(val) for val in sbu_temp]])
-                sbu_adjmat = slice_mat(adj_matrix.todense(),sbu_temp) 
+                sbu_adjmat = slice_mat(adj_matrix.todense(),sbu_temp)
                 pr_image_sbu = ligand_detect(cell_v,sbu_cart_coords,sbu_adjmat,set(range(len(linkeranchors_list))))
-                if not (len(np.unique(pr_image_sbu, axis=0))==1 and len(np.unique(pr_image_organic, axis=0))==1): # linker 
+                if not (len(np.unique(pr_image_sbu, axis=0))==1 and len(np.unique(pr_image_organic, axis=0))==1): # linker
                     max_min_linker_length = max(min_length,max_min_linker_length)
                     min_max_linker_length = min(max_length,min_max_linker_length)
                     tmpstr = str(name)+','+' Anchors list: '+str(sbuanchors_list) \
                             +','+' SBU connectlist: '+str(sbu_connect_list)+' set to be linker\n'
                     write2file(ligandpath,"/ambiguous.txt",tmpstr)
                     continue
-                else: #  all anchoring atoms are in the same unitcell -> ligand 
+                else: #  all anchoring atoms are in the same unitcell -> ligand
                     removelist.update(set(templist[ii])) # we also want to remove these ligands
                     SBUlist.update(set(templist[ii])) # we also want to remove these ligands
                     linker_list.pop(ii)
@@ -499,7 +499,7 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
     tmpstr = str(name) + ", (min_max_linker_length,max_min_linker_length): " + \
                 str(min_max_linker_length) + " , " +str(max_min_linker_length) + "\n"
     write2file(logpath,"/%s.log"%name,tmpstr)
-    if min_max_linker_length < 3: 
+    if min_max_linker_length < 3:
         write2file(linkerpath,"/short_ligands.txt",tmpstr)
     if min_max_linker_length > 2:
         # for N-C-C-N ligand ligand
@@ -507,7 +507,7 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
             long_ligands = True
         elif min_max_linker_length > 3:
             long_ligands = True
-    
+
     """""""""
     In the case of long linkers, add second coordination shell without further checks. In the case of short linkers, start from metal
     and grow outwards using the include_extra_shells function
@@ -525,13 +525,13 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
         if not long_ligands:
             tmpstr = "\nStructure has SHORT ligand\n\n"
             write2file(logpath,"/%s.log"%name,tmpstr)
-            SBU_list , SBU_subgraphlist = include_extra_shells(SBU_list,SBU_subgraphlist,molcif ,adj_matrix) 
+            SBU_list , SBU_subgraphlist = include_extra_shells(SBU_list,SBU_subgraphlist,molcif ,adj_matrix)
     else:
         tmpstr = "Structure %s has extreamly short ligands, check the outputs\n"%name
         write2file(ligandpath,"/ambiguous.txt",tmpstr)
-        tmpstr = "Structure has extreamly short ligands\n" 
+        tmpstr = "Structure has extreamly short ligands\n"
         write2file(logpath,"/%s.log"%name,tmpstr)
-        tmpstr = "Structure has extreamly short ligands\n" 
+        tmpstr = "Structure has extreamly short ligands\n"
         write2file(logpath,"/%s.log"%name,tmpstr)
         truncated_linkers = allatoms - removelist
         SBU_list, SBU_subgraphlist = get_closed_subgraph(removelist, truncated_linkers, adj_matrix)
@@ -580,5 +580,5 @@ def get_MOF_descriptors(data, depth, path=False, xyzpath = False):
 #     full_descriptors.append(cif_file)
 #     featurization = dict(zip(full_names, full_descriptors))
 #     featurization_list.append(featurization)
-# df = pd.DataFrame(featurization_list) 
-# df.to_csv('./full_featurization_frame.csv',index=False) 
+# df = pd.DataFrame(featurization_list)
+# df.to_csv('./full_featurization_frame.csv',index=False)

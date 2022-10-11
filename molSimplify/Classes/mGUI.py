@@ -1727,17 +1727,15 @@ class mGUI():
             else:
                 f = resource_filename(Requirement.parse(
                     "molSimplify"), "molSimplify/Data/coordinations.dict")
-            fl = open(f, 'r')
-            s = fl.read().splitlines()
-            fl.close()
+            with open(f, 'r') as fl:
+                s = fl.read().splitlines()
             if gname.lower() in s:
                 choice = QMessageBox.warning(
                     self.geWindow, 'Add', 'Coordination '+gname+' already exists.')
             return
             # get geometry from xyz file
-            f = open(gfile, 'r')
-            snew = f.read().splitlines()
-            f.close()
+            with open(gfile, 'r') as f:
+                snew = f.read().splitlines()
             dent = int(snew[0])-1
             xyzl = ''
             for ii in range(0, dent+1):
@@ -1753,11 +1751,10 @@ class mGUI():
                 print('Error, please set custom file path')
                 QMessageBox.warning(
                     self.wmain, 'Error, please set custom file path (dd to database)')
-            fl = open(f, 'w')
-            fl.write(s[0]+'\n')
-            for ss in ssort:
-                fl.write(ss+'\n')
-            fl.close()
+            with open(f, 'w') as fl:
+                fl.write(s[0]+'\n')
+                for ss in ssort:
+                    fl.write(ss+'\n')
             # write new backbone file
             if globs.custom_path:
                 f = globs.custom_path + "/Data/"
@@ -1765,9 +1762,8 @@ class mGUI():
                 print('Error, please set custom file path')
                 QMessageBox.warning(
                     self.wmain, 'Error, please set custom file path (dd to database)')
-            fl = open(f+gshort+'.dat', 'w')
-            fl.write(xyzl)
-            fl.close()
+            with open(f+gshort+'.dat', 'w') as fl:
+                fl.write(xyzl)
             # write png file
             if glob.glob(cfile):
                 f = resource_filename(Requirement.parse(
@@ -1864,12 +1860,11 @@ class mGUI():
                 if len(cdbdir) > 0:
                     writef = True
         if writef:
-            f = open(globs.homedir+'/.molSimplify', 'w')
-            #  f.write("INSTALLDIR="+instdir+'\n')
-            f.write("CHEMDBDIR="+cdbdir+'\n')
-            if len(mwfn) > 1:
-                f.write("MULTIWFN="+mwfn[0]+'\n')
-            f.close()
+            with open(globs.homedir+'/.molSimplify', 'w') as f:
+                #  f.write("INSTALLDIR="+instdir+'\n')
+                f.write("CHEMDBDIR="+cdbdir+'\n')
+                if len(mwfn) > 1:
+                    f.write("MULTIWFN="+mwfn[0]+'\n')
             # get existing databases
             globsnew = globalvars()
             dbdir = globsnew.chemdbdir
@@ -1985,8 +1980,8 @@ class mGUI():
             # check if multiple ligands in .smi file
             for li in lls:
                 if '.smi' in li:
-                    f = open(li, 'r')
-                    smis = [_f for _f in f.read().splitlines() if _f]
+                    with open(li, 'r') as f:
+                        smis = [_f for _f in f.read().splitlines() if _f]
                     liglist += smis
                 else:
                     liglist.append(li)
@@ -2089,8 +2084,8 @@ class mGUI():
             # check if multiple ligands in .smi file
             for li in lls:
                 if '.smi' in li:
-                    f = open(li, 'r')
-                    smis = [_f for _f in f.read().splitlines() if _f]
+                    with open(li, 'r') as f:
+                        smis = [_f for _f in f.read().splitlines() if _f]
                     liglist += smis
                 else:
                     liglist.append(li)
@@ -2347,9 +2342,8 @@ class mGUI():
         name = QFileDialog.getOpenFileName(
             self.qctWindow, 'Open File', '.', "GAMESS input files")
         if name[0] != '':
-            f = open(name[0], 'r')
-            self.qcgWindow.molf = f.read()
-            f.close()
+            with open(name[0], 'r') as f:
+                self.qcgWindow.molf = f.read()
     # enable QE input
 
     def enableqeinput(self):
@@ -2387,9 +2381,8 @@ class mGUI():
         name = QFileDialog.getOpenFileName(
             self.qctWindow, 'Open File', '.', "Jobscript files")
         if name[0] != '':
-            f = open(name[0], 'r')
-            self.jWindow.molf = f.read()
-            f.close()
+            with open(name[0], 'r') as f:
+                self.jWindow.molf = f.read()
     ###############################
     #### post-processing input ####
     ###############################
@@ -2403,9 +2396,8 @@ class mGUI():
         cwd = os.getcwd()
         os.chdir(globs.homedir)
         inputtxt = '0\n0\n'
-        f = open('input1', 'w')
-        f.write(inputtxt)
-        f.close()
+        with open('input1', 'w') as f:
+            f.write(inputtxt)
         writef = False
         mwfn = globs.multiwfn
         cdbdir = globs.chemdbdir
@@ -2420,13 +2412,12 @@ class mGUI():
                 if len(mwfn[0]) > 1:
                     writef = True
         if writef:
-            f = open(globs.homedir+'/.molSimplify', 'w')
-            # f.write("INSTALLDIR="+instdir+'\n')
-            if len(cdbdir) > 0:
-                f.write("CHEMDBDIR="+cdbdir+'\n')
-            if len(mwfn) > 0:
-                f.write("MULTIWFN="+mwfn[0]+"\n")
-            f.close()
+            with open(globs.homedir+'/.molSimplify', 'w') as f:
+                # f.write("INSTALLDIR="+instdir+'\n')
+                if len(cdbdir) > 0:
+                    f.write("CHEMDBDIR="+cdbdir+'\n')
+                if len(mwfn) > 0:
+                    f.write("MULTIWFN="+mwfn[0]+"\n")
         newglobs = globalvars()
         com = newglobs.multiwfn
         tt = mybash(com + '< input1')

@@ -19,7 +19,7 @@ We currently recommend installation via the [Conda](https://conda.io/docs/) pack
    git clone https://github.com/hjkgrp/molSimplify.git
    ```
 
-3. Go to the folder root folder for molSimplify, create the conda environment from the yaml file (`devtools/conda-envs/mols.yml`). **For M1 Macs, use** `mols_m1.yml` **instead.** This step will help you get all the dependencies correct in a newly created conda environment named "mols_test". You can specify a different name for this environment at the first line of the yaml file.
+3. Go to the folder root folder for molSimplify, create the conda environment from the yaml file (`devtools/conda-envs/mols.yml`). **For M1 Macs, use** `mols_m1.yml` **instead**; see [this file](devtools/conda-envs/README.md) if you are having issues. This step will help you get all the dependencies correct in a newly created conda environment named "mols_test". You can specify a different name for this environment at the first line of the yaml file.
 
    ```bash
    cd molSimplify/devtools/conda-envs

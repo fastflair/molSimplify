@@ -151,7 +151,11 @@ def get_machine():
     elif "gridsan" in hostname or "login-" in hostname:
         machine = "supercloud"
     else:
-        raise ValueError('Machine Unknown to Job Manager')
+        hostname = call_bash('hostname -A')[0]
+        if "expanse" in hostname:
+            machine = "expanse"
+        else:
+            raise ValueError('Machine Unknown to Job Manager')
     return machine
 
 def get_username():
@@ -242,7 +246,7 @@ def list_active_jobs(ids=False, home_directory=False, parse_bundles=False):
     try:
         if get_machine() == 'gibraltar':
             job_report.lines = call_bash("qstat -r")
-        elif get_machine() in ['comet', 'bridges']:
+        elif get_machine() in ['comet', 'bridges','expanse']:
             job_report.lines = call_bash('squeue -o "%.18i %.9P %.50j %.8u %.2t %.10M %.6D %R" -u '+get_username(),
                                          version=2)
         else:
@@ -252,7 +256,7 @@ def list_active_jobs(ids=False, home_directory=False, parse_bundles=False):
     if get_machine() == 'gibraltar':
         names = job_report.wordgrab('jobname:', 2)[0]
         names = [i for i in names if i]  # filters out NoneTypes
-    elif get_machine() in ['comet', 'bridges', "mustang", "supercloud"]:
+    elif get_machine() in ['comet', 'bridges', "mustang", "supercloud",'expanse']:
         names = job_report.wordgrab(get_username(), 2)[0]
         names = [i for i in names if i]  # filters out NoneTypes
     else:
@@ -261,13 +265,13 @@ def list_active_jobs(ids=False, home_directory=False, parse_bundles=False):
         job_ids = []
         if get_machine() == 'gibraltar':
             line_indices_of_jobnames = job_report.wordgrab('jobname:', 2, matching_index=True)[0]
-        elif get_machine() in ['comet', 'bridges', "mustang", "supercloud"]:
+        elif get_machine() in ['comet', 'bridges', "mustang", "supercloud",'expanse']:
             line_indices_of_jobnames = job_report.wordgrab(get_username(), 2, matching_index=True)[0]
         line_indices_of_jobnames = [i for i in line_indices_of_jobnames if i]  # filters out NoneTypes
         for line_index in line_indices_of_jobnames:
             if get_machine() == 'gibraltar':
                 job_ids.append(int(job_report.lines[line_index - 1].split()[0]))
-            elif get_machine() in ['comet', 'bridges', "mustang", "supercloud"]:
+            elif get_machine() in ['comet', 'bridges', "mustang", "supercloud",'expanse']:
                 job_ids.append(int(job_report.lines[line_index].split()[0]))
         if len(names) != len(job_ids):
             print(len(names))
@@ -277,9 +281,8 @@ def list_active_jobs(ids=False, home_directory=False, parse_bundles=False):
 
     if parse_bundles and os.path.isfile(os.path.join(home_directory, 'bundle', 'bundle_id')):
 
-        fil = open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'r')
-        identifier = fil.readlines()[0]
-        fil.close()
+        with open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'r') as fil:
+            identifier = fil.readlines()[0]
 
         bundles = [i for i in names if i.startswith('bundle_')]
         bundles = [i.rsplit('_', 1)[0] for i in names if i.endswith(identifier)]
@@ -287,10 +290,9 @@ def list_active_jobs(ids=False, home_directory=False, parse_bundles=False):
 
         for bundle in bundles:
             info_path = glob.glob(os.path.join(home_directory, 'bundle', bundle, '*_info'))[0]
-            fil = open(info_path, 'r')
-            lines = fil.readlines()
+            with open(info_path, 'r') as fil:
+                lines = fil.readlines()
             lines = [i[:-1] if i.endswith('\n') else i for i in lines]
-            fil.close()
             names.extend(lines)
 
     return names
@@ -322,11 +324,10 @@ def get_number_active():
     active_non_bundles = [i for i in outfiles if check_active(i)]
 
     if os.path.isdir('bundle'):
-        fil = open(os.path.join('bundle', 'bundle_id'))
-        identifier = fil.readlines()[0]
+        with open(os.path.join('bundle', 'bundle_id')) as fil:
+            identifier = fil.readlines()[0]
         if identifier.endswith('\n'):
             identifier = identifier[:-1]
-        fil.close()
 
         active_bundles = [i for i in active_jobs if i.startswith('bundle_')]
         active_bundles = [i for i in active_jobs if i.endswith(identifier)]
@@ -348,7 +349,7 @@ def get_total_queue_usage():
     # gets the number of jobs in the queue for this user, regardless of where they originate
     if get_machine() == 'gibraltar':
         jobs = call_bash("qstat -u '" + get_username() + "'", version=2)
-    elif get_machine() in ['comet', 'bridges', "mustang", "supercloud"]:
+    elif get_machine() in ['comet', 'bridges', "mustang", "supercloud",'expanse']:
         jobs = call_bash('squeue -o "%.18i %.9P %.50j %.8u %.2t %.10M %.6D %R" -u ' + get_username(),
                          version=2)
     else:
@@ -569,7 +570,7 @@ def qsub(jobscript_list):
         if get_machine() in ['gibraltar']:
             stdout, stderr = call_bash('qsub ' + jobscript, error=True)
             stdouts.append(stdout)
-        elif get_machine() in ['bridges', 'comet']:
+        elif get_machine() in ['bridges', 'comet', 'expanse']:
             stdout, stderr = call_bash('sbatch ' + jobscript, error=True)
             stdouts.append(stdout)
         if len(stderr) > 0:
@@ -651,9 +652,8 @@ def extract_optimized_geo(PATH, custom_name=False):
     # Given the path to an optim.xyz file, this will extract optimized.xyz, which contains only the last frame
     # The file is written to the same directory as contained optim.xyz
 
-    optim = open(PATH, 'r')
-    lines = optim.readlines()
-    optim.close()
+    with open(PATH, 'r') as optim:
+        lines = optim.readlines()
     lines.reverse()
     if len(lines) == 0:
         lines = []
@@ -674,10 +674,9 @@ def extract_optimized_geo(PATH, custom_name=False):
     else:
         name = 'optimized.xyz'
 
-    optimized = open(os.path.join(homedir, name), 'w')
-    for i in lines:
-        optimized.write(i)
-    optimized.close()
+    with open(os.path.join(homedir, name), 'w') as optimized:
+        for i in lines:
+            optimized.write(i)
 
     return lines
 
@@ -779,12 +778,10 @@ def sub_bundle_jobscripts(home_directory, jobscript_paths):
     # Records information about which jobs were bundled together in the run's home directory
     if not os.path.isdir(os.path.join(home_directory, 'bundle')):
         os.mkdir(os.path.join(home_directory, 'bundle'))
-        fil = open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'w')
-        fil.write(str(np.random.randint(100000000000)))
-        fil.close()
-    fil = open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'r')
-    identifier = fil.readlines()[0]
-    fil.close()
+        with open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'w') as fil:
+            fil.write(str(np.random.randint(100000000000)))
+    with open(os.path.join(home_directory, 'bundle', 'bundle_id'), 'r') as fil:
+        identifier = fil.readlines()[0]
 
     jobscript_paths = [convert_to_absolute_path(i) for i in jobscript_paths]
 
@@ -799,12 +796,11 @@ def sub_bundle_jobscripts(home_directory, jobscript_paths):
     os.mkdir(os.path.join(home_directory, 'bundle', 'bundle_' + str(max(existing_bundle_numbers) + 1)))
 
     # Record info about how the jobs are being bundled
-    fil = open(os.path.join(home_directory, 'bundle', 'bundle_' + str(max(existing_bundle_numbers) + 1),
-                            'bundle_' + str(max(existing_bundle_numbers) + 1) + '_info'), 'w')
-    for i in jobscript_paths[:-1]:
-        fil.write(os.path.split(i)[-1].rsplit('_', 1)[0] + '\n')
-    fil.write(os.path.split(jobscript_paths[-1])[-1].rsplit('_', 1)[0])
-    fil.close()
+    with open(os.path.join(home_directory, 'bundle', 'bundle_' + str(max(existing_bundle_numbers) + 1),
+                           'bundle_' + str(max(existing_bundle_numbers) + 1) + '_info'), 'w') as fil:
+        for i in jobscript_paths[:-1]:
+            fil.write(os.path.split(i)[-1].rsplit('_', 1)[0] + '\n')
+        fil.write(os.path.split(jobscript_paths[-1])[-1].rsplit('_', 1)[0])
 
     # Write a jobscript for the job bundle
     home = os.getcwd()
@@ -813,14 +809,13 @@ def sub_bundle_jobscripts(home_directory, jobscript_paths):
                                         terachem_line=False, time_limit='12:00:00', machine=get_machine())
     shutil.move('bundle_' + str(max(existing_bundle_numbers) + 1) + '_' + identifier + '_jobscript',
                 'bundle_' + str(max(existing_bundle_numbers) + 1))
-    fil = open('bundle_' + str(max(existing_bundle_numbers) + 1), 'a')
-    for i in jobscript_paths:
-        infile = i.rsplit('_', 1)[0] + '.in'
-        outfile = i.rsplit('_', 1)[0] + '.out'
-        directory = os.path.split(i)[0]
-        text = 'cd ' + directory + '\n' + 'terachem ' + infile + ' > ' + outfile
-        fil.write(text + '\n')
-    fil.close()
+    with open('bundle_' + str(max(existing_bundle_numbers) + 1), 'a') as fil:
+        for i in jobscript_paths:
+            infile = i.rsplit('_', 1)[0] + '.in'
+            outfile = i.rsplit('_', 1)[0] + '.out'
+            directory = os.path.split(i)[0]
+            text = 'cd ' + directory + '\n' + 'terachem ' + infile + ' > ' + outfile
+            fil.write(text + '\n')
     os.chdir(home)
 
     return os.path.join(home_directory, 'bundle', 'bundle_' + str(max(existing_bundle_numbers) + 1),
@@ -1126,9 +1121,8 @@ def prep_functionals_sp(path, functionalsSP):
 
         manager_io.write_input(local_infile_dict)
 
-        fil = open('configure', 'w')
-        fil.write('method:' + func)
-        fil.close()
+        with open('configure', 'w') as fil:
+            fil.write('method:' + func)
         os.chdir(home)
         jobscripts.append(os.path.join(PATH, name + '_jobscript'))
     os.chdir(home)
@@ -1399,8 +1393,8 @@ def prep_ultratight(path):
         manager_io.write_input(local_infile_dict)
 
         # Make an empty .out file to prevent the resubmission module from mistakenly submitting this job twice
-        f = open(name + '.out', 'w')
-        f.close()
+        with open(name + '.out', 'w') as _:
+            pass
 
         os.chdir(home)
 

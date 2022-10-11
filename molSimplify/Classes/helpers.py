@@ -23,7 +23,7 @@ def read_atom(line):
         atom_dict : dictionary
             dictionary containing attributes of atom when reading the pdb
     """
-            
+
     labels = ['Type', 'SerialNum', 'Name', 'AltLoc', 'ResName', 'ChainID',
               'ResSeq', 'ICode', 'X', 'Y', 'Z', 'Occupancy', 'TempFactor',
               'Element', 'Charge']

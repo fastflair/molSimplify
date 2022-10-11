@@ -138,8 +138,9 @@ def git_get_keywords(versionfile_abs):
     # _version.py.
     keywords = {}
     try:
-        f = open(versionfile_abs, "r")
-        for line in f.readlines():
+        with open(versionfile_abs, "r") as f:
+            lines = f.readlines()
+        for line in lines:
             if line.strip().startswith("git_refnames ="):
                 mo = re.search(r'=\s*"(.*)"', line)
                 if mo:
@@ -152,7 +153,6 @@ def git_get_keywords(versionfile_abs):
                 mo = re.search(r'=\s*"(.*)"', line)
                 if mo:
                     keywords["date"] = mo.group(1)
-        f.close()
     except EnvironmentError:
         pass
     return keywords

@@ -27,7 +27,7 @@ def read_run(outfile_PATH):
     -------
         results : dict
             Analyzed results for job.
-    
+
     """
     # Evaluates all aspects of a run using the outfile and derivative files
     results = manager_io.read_outfile(outfile_PATH, long_output=True)
@@ -57,9 +57,8 @@ def read_run(outfile_PATH):
 
     check_geo = False
     if os.path.isfile(optim_path):
-        fil = open(optim_path, 'r')
-        lines = fil.readlines()
-        fil.close()
+        with open(optim_path, 'r') as fil:
+            lines = fil.readlines()
         if len(lines) > 0:
             check_geo = True  # Only apply geo check if an optimized geometry exists
 
@@ -102,7 +101,7 @@ def create_summary(directory='in place'):
     -------
         summary : pd.DataFrame
             Summary of full directory.
-    
+
     """
     # Returns a pandas dataframe which summarizes all outfiles in the directory, defaults to cwd
 
@@ -128,7 +127,7 @@ def apply_geo_check(job_outfile_path, geometry):
     -------
         geo_flag : bool
             Flag describing geometry. True if good geometry.
-    
+
     """
     if geometry:  # The geometry variable is set to False if no geo check is requested for this job
 
@@ -216,7 +215,7 @@ def get_metal_and_bonded_atoms(job_outfile, geometry=None):
     -------
         geo_flag : bool
             Flag describing geometry. True if good geometry.
-    
+
     """
     # given the path to the outfile of a job, returns a the metal atom index and a list of indices for the metal bonded atoms
     # indices are zero-indexed...Terachem uses 1 indexed lists
@@ -251,7 +250,7 @@ def check_completeness(directory='in place', max_resub=5, configure_dict=False):
     -------
         completeness : dict
             Completeness dictionary for a given directory.
-    
+
     """
     completeness = tools.check_completeness(directory, max_resub, configure_dict=configure_dict)
     # print("=======")
@@ -331,7 +330,7 @@ def prep_ligand_breakdown(outfile_path, dissociated_ligand_charges={}, dissociat
     -------
         jobscripts : list
             List of jobscripts for ligand breakdown jobs.
-    
+
     """
     # Given a path to the outfile of a finished run, this preps the files for rigid ligand dissociation energies of all ligands
     # Returns a list of the PATH(s) to the jobscript(s) to start the rigid ligand calculations
@@ -444,7 +443,7 @@ def prep_ligand_breakdown(outfile_path, dissociated_ligand_charges={}, dissociat
             local_infile_dict['run_type'] = 'energy'
             local_infile_dict['constraints'], local_infile_dict['convergence_thresholds'] = False, False
             local_infile_dict['machine'] = machine
-            
+
             manager_io.write_input(local_infile_dict)
             manager_io.write_jobscript(local_name, time_limit='12:00:00', machine=machine)
             jobscripts.append(local_name + '.in')
@@ -452,6 +451,7 @@ def prep_ligand_breakdown(outfile_path, dissociated_ligand_charges={}, dissociat
     os.chdir(home)
 
     return jobscripts
+
 
 def prep_mbe_calc(outfile_path, metal_charge=0):
     """Prep ligand breakdown.
@@ -467,7 +467,7 @@ def prep_mbe_calc(outfile_path, metal_charge=0):
     -------
         jobscripts : list
             List of jobscripts for metal binding energy jobs.
-    
+
     """
     # Given a path to the outfile of a finished run, this preps the files for rigid ligand dissociation energies of all ligands
     # Returns a list of the PATH(s) to the jobscript(s) to start the rigid ligand calculations
@@ -543,7 +543,7 @@ def name_ligands(nested_list):
     -------
         ligand_formulas : list
             List of ligand formulas.
-    
+
     """
     # takes a nested list of atom symbols and converts it to a list of unique chemical names based on the molecular formulas
 
@@ -592,7 +592,7 @@ def check_molscontrol_log(job):
     -------
         killed : bool
             True if job killed.
-    
+
     """
     molscontrol_logfile = "/".join(job.split("/")[:-1]) + '/molscontrol.log'
     if os.path.isfile(molscontrol_logfile):

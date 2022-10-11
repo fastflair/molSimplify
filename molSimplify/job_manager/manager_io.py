@@ -16,6 +16,8 @@ def try_float(obj):
         floating_point = float(obj)
     except ValueError:
         floating_point = obj
+    except TypeError:
+        floating_point = obj
     return floating_point
 
 
@@ -332,9 +334,8 @@ def read_configure(home_directory, outfile_path):
 
         configure = os.path.join(directory, 'configure')
         if os.path.isfile(configure):
-            f = open(configure, 'r')
-            configure = f.readlines()
-            f.close()
+            with open(configure, 'r') as f:
+                configure = f.readlines()
             configure = list(map(strip_new_line, configure))
             return configure
         else:
@@ -546,7 +547,6 @@ def write_terachem_input(infile_dictionary):
     if infile['spinmult'] != 1:
         infile['method'] = 'u' + infile['method']
 
-    input_file = open(infile['name'] + '.in', 'w')
     text = ['levelshiftvalb ' + str(infile['levelshiftb']) + '\n',
             'levelshiftvala ' + str(infile['levelshifta']) + '\n',
             'run ' + infile['run_type'] + '\n',
@@ -621,9 +621,9 @@ def write_terachem_input(infile_dictionary):
     else:
         raise ValueError('Machine not known!')
 
-    for lines in text:
-        input_file.write(lines)
-    input_file.close()
+    with open(infile['name'] + '.in', 'w') as fout:
+        for lines in text:
+            fout.write(lines)
 
 
 def write_orca_input(infile_dictionary):
@@ -657,7 +657,6 @@ def write_orca_input(infile_dictionary):
     if infile['run_type'] == 'minimize':
         infile['run_type'] = 'opt'
 
-    input_file = open(infile['name'] + '.in', 'w')
     # Note that max core is set to 2000MB, this is 2/3 of the amount allocated in the jobscript (on a per processor basis)
     # The SCF is known (according to the ORCA manual) to exceed allotted memory, so this provides some wiggle room
     if not infile['solvent']:
@@ -679,9 +678,9 @@ def write_orca_input(infile_dictionary):
     if infile['custom_line']:
         text = text + [infile['custom_line'] + '\n']
 
-    for lines in text:
-        input_file.write(lines)
-    input_file.close()
+    with open(infile['name'] + '.in', 'w') as input_file:
+        for lines in text:
+            input_file.write(lines)
 
 
 def write_jobscript(name, custom_line=None, time_limit='96:00:00', qm_code='terachem', parallel_environment=4,
@@ -690,7 +689,7 @@ def write_jobscript(name, custom_line=None, time_limit='96:00:00', qm_code='tera
     # custom line allows the addition of extra lines just before the export statement
 
     if qm_code == 'terachem':
-        write_terachem_jobscript(name, custom_line=custom_line, time_limit=time_limit, 
+        write_terachem_jobscript(name, custom_line=custom_line, time_limit=time_limit,
                                  machine=machine, use_molscontrol=use_molscontrol,
                                  queues=queues)
     elif qm_code == 'orca':
@@ -701,11 +700,11 @@ def write_jobscript(name, custom_line=None, time_limit='96:00:00', qm_code='tera
         raise Exception('QM code: ' + qm_code + ' not recognized for jobscript writing!')
 
 
-def write_terachem_jobscript(name, custom_line=None, time_limit='96:00:00', terachem_line=True, 
+def write_terachem_jobscript(name, custom_line=None, time_limit='96:00:00', terachem_line=True,
                              machine='gibraltar', use_molscontrol=False, queues=['gpus', 'gpusnew']):
     # if use_molscontrol and machine != 'gibraltar':
     #     raise ValueError("molscontrol is only implemented on gibraltar for now.")
-    jobscript = open(name + '_jobscript', 'w')
+
     if machine == 'gibraltar':
         if not use_molscontrol:
             text = ['#$ -S /bin/bash\n',
@@ -816,9 +815,10 @@ def write_terachem_jobscript(name, custom_line=None, time_limit='96:00:00', tera
         else:
             text = text[:12] + [custom_line + '\n'] + text[12:]
     text += ['sleep 30']
-    for i in text:
-        jobscript.write(i)
-    jobscript.close()
+
+    with open(name + '_jobscript', 'w') as jobscript:
+        for i in text:
+            jobscript.write(i)
 
 
 def write_molscontrol_config():
@@ -834,7 +834,7 @@ def write_orca_jobscript(name, custom_line=None, time_limit='96:00:00', parallel
 
     memory_allocation = str(
         int(parallel_environment) * 3)  # allocate memory based on 192 GB for 64 processors on the new cpu nodes
-    jobscript = open(name + '_jobscript', 'w')
+
     if machine == 'gibraltar':
         text = ['#$ -S /bin/bash\n',
                 '#$ -N ' + name + '\n',
@@ -867,9 +867,9 @@ def write_orca_jobscript(name, custom_line=None, time_limit='96:00:00', parallel
         else:
             text = text[:12] + [custom_line + '\n'] + text[12:]
 
-    for i in text:
-        jobscript.write(i)
-    jobscript.close()
+    with open(name + '_jobscript', 'w') as jobscript:
+        for i in text:
+            jobscript.write(i)
 
 
 def get_scf_progress(outfile):

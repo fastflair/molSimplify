@@ -101,17 +101,14 @@ def addtoldb(smimol, sminame, smident, smicat, smigrps, smictg, ffopt, smichg=No
             snew = str(sminame)+':'+str(sminame)+'.xyz,'+str(shortname)+','+str(css)+','+str(grp)+','+str(ffopt)+','+str(lig.charge)
         # update dictionary
 
-        f = open(lipath, 'r')
-
-        ss = f.read().splitlines()
-        f.close()
-        f = open(lipath, 'w')
+        with open(lipath, 'r') as f:
+            ss = f.read().splitlines()
         ss.append(snew)
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            f.write(s+'\n')
-        f.close()
+        with open(lipath, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                f.write(s+'\n')
     return emsg
 
 
@@ -166,16 +163,14 @@ def addtocdb(smimol, sminame, smicat):
             # new entry for dictionary
             snew = sminame+':'+sminame+'.xyz,'+css+','+'1'
         # update dictionary
-        f = open(cpath, 'r')
-        ss = f.read().splitlines()
-        f.close()
-        f = open(cpath, 'w')
+        with open(cpath, 'r') as f:
+            ss = f.read().splitlines()
         ss.append(snew)
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            f.write(s+'\n')
-        f.close()
+        with open(cpath, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                f.write(s+'\n')
     return emsg
 
 
@@ -231,16 +226,14 @@ def addtobdb(smimol, sminame):
             bind.writexyz(bind_folder + sminame+'.xyz')  # write xyz file
             snew = sminame+':'+sminame+'.xyz,'+shortname+','
         # update dictionary
-        f = open(bpath, 'r')
-        ss = f.read().splitlines()
-        f.close()
-        f = open(bpath, 'w')
+        with open(bpath, 'r') as f:
+            ss = f.read().splitlines()
         ss.append(snew)
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            f.write(s+'\n')
-        f.close()
+        with open(bpath, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                f.write(s+'\n')
     return emsg
 
 
@@ -268,47 +261,41 @@ def removefromDB(sminame, ropt):
 
     if ropt == 1:
         # update dictionary
-        f = open(li_path, 'r')
-        ss = f.read().splitlines()
-        f.close()
-        f = open(li_path, 'w')
+        with open(li_path, 'r') as f:
+            ss = f.read().splitlines()
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            sss = s.split(':')
-            if sminame != sss[0]:
-                f.write(s+'\n')
-            else:
-                os.remove(li_folder + sss[1].split(',')[0])
-        f.close()
+        with open(li_path, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                sss = s.split(':')
+                if sminame != sss[0]:
+                    f.write(s+'\n')
+                else:
+                    os.remove(li_folder + sss[1].split(',')[0])
     elif ropt == 0:
         # update dictionary
-        f = open(core_path, 'r')
-        ss = f.read().splitlines()
-        f.close()
-        f = open(core_path, 'w')
+        with open(core_path, 'r') as f:
+            ss = f.read().splitlines()
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            sss = s.split(':')
-            if sminame != sss[0]:
-                f.write(s+'\n')
-            else:
-                os.remove(core_folder+sss[1].split(',')[0])
-        f.close()
+        with open(core_path, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                sss = s.split(':')
+                if sminame != sss[0]:
+                    f.write(s+'\n')
+                else:
+                    os.remove(core_folder+sss[1].split(',')[0])
     elif ropt == 2:
         # update dictionary
-        f = open(bind_path, 'r')
-        ss = f.read().splitlines()
-        f.close()
-        f = open(bind_path, 'w')
+        with open(bind_path, 'r') as f:
+            ss = f.read().splitlines()
         ssort = sorted(ss[1:])
-        f.write(ss[0]+'\n')
-        for s in ssort:
-            sss = s.split(':')
-            if sminame != sss[0]:
-                f.write(s+'\n')
-            else:
-                os.remove(bind_folder+sss[1].split(',')[0])
-        f.close()
+        with open(bind_path, 'w') as f:
+            f.write(ss[0]+'\n')
+            for s in ssort:
+                sss = s.split(':')
+                if sminame != sss[0]:
+                    f.write(s+'\n')
+                else:
+                    os.remove(bind_folder+sss[1].split(',')[0])
     return emsg

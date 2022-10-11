@@ -348,7 +348,6 @@ def getcubes(molf, folder, gui, flog):
         "##################### Generating cube files ######################\n")
     print("##################### Generating cube files ######################\n")
     # loop over folders
-    resf = []
     for numi, resf in enumerate(molf):
         resd = os.path.relpath(resf, folder)
         resd = resd.split('.molden')[0]
@@ -636,6 +635,7 @@ def deloc(molf, folder, gui, flog):
                 with open('input0', 'w') as f:
                     f.write(inputtxt)
                 tt = mybash(com)
+                print(tt)
             os.remove('input0')
         # check if good
         with open(outfile, 'r') as f:

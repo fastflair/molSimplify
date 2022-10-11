@@ -359,4 +359,5 @@ def check_pid(pid):
 def kill_job(pid):
     cmd = 'kill -9 %s' % str(pid)
     q = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-    ll = q.communicate()[0].decode("utf-8")
+    # Unused:
+    _ = q.communicate()[0].decode("utf-8")

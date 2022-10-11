@@ -5,21 +5,24 @@
 #
 #  Department of Chemical Engineering, MIT
 
-import sys
 import os
 import subprocess
 import tempfile
-from molSimplify.Scripts.distgeom import (GetConf)
-from molSimplify.Classes.atom3D import atom3D
-from molSimplify.Classes.mol3D import (mol3D)
-from molSimplify.Scripts.geometry import (PointTranslateSph,
-                                          aligntoaxis2,
+import openbabel
+import random
+import itertools
+import numpy as np
+from typing import Any, List, Tuple, Dict
+from molSimplify.Scripts.distgeom import GetConf
+from molSimplify.Scripts.geometry import (aligntoaxis2,
+                                          best_fit_plane,
                                           checkcolinear,
                                           distance,
                                           getPointu,
                                           kabsch,
                                           midpt,
                                           norm,
+                                          PointTranslateSph,
                                           reflect_through_plane,
                                           rotate_around_axis,
                                           rotate_mat,
@@ -35,26 +38,22 @@ from molSimplify.Scripts.io import (core_load,
                                     loadcoord,
                                     loaddata,
                                     name_complex)
-
-if not sys.version_info >= (3, 0):
-    from molSimplify.Scripts.nn_prep import (ANN_preproc)
+from molSimplify.Classes.atom3D import atom3D
+from molSimplify.Classes.mol3D import mol3D
+from molSimplify.Classes.rundiag import run_diag
 from molSimplify.Classes.globalvars import (elementsbynum,
-                                            romans)
-from molSimplify.Classes.rundiag import (run_diag)
+                                            globalvars,
+                                            romans,
+                                            )
 from molSimplify.Informatics.decoration_manager import (decorate_ligand)
 from molSimplify.Informatics.RACassemble import (assemble_connectivity_from_parts)
 from molSimplify.Classes.ligand import ligand as ligand_class
-from molSimplify.Classes.globalvars import globalvars
-import openbabel
-import random
-import itertools
-import numpy
-from numpy import log, arccos, cross, dot, pi
-numpy.seterr(all='raise')
+np.seterr(all='raise')
 
 
 def getbackbcombsall(nums):
-    """Gets all possible combinations for connection atoms in geometry in the case of forced order or unknown geometry.
+    """Gets all possible combinations for connection atoms in geometry in the
+    case of forced order or unknown geometry.
 
     Parameters
     ----------
@@ -75,7 +74,7 @@ def getbackbcombsall(nums):
     return bbcombs
 
 
-def getnupdateb(backbatoms, denticity):
+def getnupdateb(backbatoms: List[List[int]], denticity: int) -> Tuple[List[int], List[List[int]]]:
     """Gets a combination of backbone points that satisfies denticity and updates possible combinations.
 
     Parameters
@@ -96,14 +95,14 @@ def getnupdateb(backbatoms, denticity):
     dlist = []
     batoms = []
     # find matching combination
-    for b in backbatoms:
-        if len(b) == denticity:
-            batoms = b
+    for bba in backbatoms:
+        if len(bba) == denticity:
+            batoms = bba
             break
     # loop and find elements to delete
-    for b in batoms:
+    for ba in batoms:
         for i, bcomb in enumerate(backbatoms):
-            if b in bcomb and i not in dlist:
+            if ba in bcomb and i not in dlist:
                 dlist.append(i)
     dlist.sort(reverse=True)  # sort
     # delete used points
@@ -114,7 +113,9 @@ def getnupdateb(backbatoms, denticity):
     return batoms, backbatoms
 
 
-def init_ANN(args, ligands, occs, dents, batslist, tcats, licores):
+def init_ANN(args, ligands: List[str], occs: List[int], dents: List[int],
+             batslist: List[List[int]], tcats: List[str], licores: dict
+             ) -> Tuple[bool, List[Any], str, Dict[str, Any], bool]:
     """Initializes ANN.
 
     Parameters
@@ -149,7 +150,6 @@ def init_ANN(args, ligands, occs, dents, batslist, tcats, licores):
 
     """
     # initialize ANN
-    ANN_attributes = dict()
     globs = globalvars()
     catalysis_flag = False
     if args.skipANN:
@@ -157,52 +157,51 @@ def init_ANN(args, ligands, occs, dents, batslist, tcats, licores):
         ANN_flag = False
         # there needs to be 1 length per possible lig
         ANN_bondl = len([item for items in batslist for item in items])*[False]
+        ANN_attributes: Dict[str, Any] = {}
         ANN_reason = 'ANN skipped by user'
+        return ANN_flag, ANN_bondl, ANN_reason, ANN_attributes, catalysis_flag
+
+    if args.oldANN:
+        print('using old ANN by request')
+        from molSimplify.Scripts.nn_prep import ANN_preproc
+        ANN_flag, ANN_reason, ANN_attributes = ANN_preproc(
+            args, ligands, occs, dents, batslist, tcats, licores)
     else:
-
-        # try:
-        if True:
-            if args.oldANN:
-                print('using old ANN by request')
-                from molSimplify.Scripts.nn_prep import ANN_preproc
-                ANN_flag, ANN_reason, ANN_attributes = ANN_preproc(
-                    args, ligands, occs, dents, batslist, tcats, licores)
-            else:
-                if globs.testTF():
-                    # new RACs-ANN
-                    from molSimplify.Scripts.tf_nn_prep import tf_ANN_preproc
-                    if args.debug:
-                        print('Using tf_ANN_preproc')
-                    ANN_flag, ANN_reason, ANN_attributes, catalysis_flag = tf_ANN_preproc(
-                        args, ligands, occs, dents, batslist, tcats, licores)
-                else:
-                    # old MCDL-25
-                    print('using old ANN because tensorflow/keras import failed')
-                    from molSimplify.Scripts.nn_prep import ANN_preproc
-                    ANN_flag, ANN_reason, ANN_attributes = ANN_preproc(
-                        args, ligands, occs, dents, batslist, tcats, licores)
-            if ANN_flag:
-                ANN_bondl = ANN_attributes['ANN_bondl']
-                if args.debug:
-                    print(('ANN bond length is ' + str(ANN_bondl) +
-                           ' type ' + str(type(ANN_bondl))))
-
-            else:
-                # there needs to be 1 length per possible lig
-                ANN_bondl = len(
-                    [item for items in batslist for item in items])*[False]
-                if args.debug:
-                    if ANN_reason == 'found incorrect ligand symmetry':  # This is a workaround so as to not have to change report files checked by GitHub CI when running test cases, which would require everyone using molSimplify from source to have to git pull the new files before any new commits
-                        print(("ANN call failed with reason: either found incorrect ligand symmetry, or see ANN messages above"))
-                    else:
-                        print(("ANN call failed with reason: " + ANN_reason))
-        # except:
+        if globs.testTF():
+            # new RACs-ANN
+            from molSimplify.Scripts.tf_nn_prep import tf_ANN_preproc
+            if args.debug:
+                print('Using tf_ANN_preproc')
+            ANN_flag, ANN_reason, ANN_attributes, catalysis_flag = tf_ANN_preproc(
+                args, ligands, occs, dents, batslist, tcats, licores, args.debug)
         else:
-            print("ANN call rejected")
-            ANN_reason = 'uncaught exception'
-            ANN_flag = False
-            ANN_bondl = len(
-                [item for items in batslist for item in items])*[False]
+            # old MCDL-25
+            print('using old ANN because tensorflow/keras import failed')
+            from molSimplify.Scripts.nn_prep import ANN_preproc
+            ANN_flag, ANN_reason, ANN_attributes = ANN_preproc(
+                args, ligands, occs, dents, batslist, tcats, licores)
+    if ANN_flag:
+        ANN_bondl = ANN_attributes['ANN_bondl']
+        if args.debug:
+            print(('ANN bond length is ' + str(ANN_bondl) +
+                   ' type ' + str(type(ANN_bondl))))
+
+    else:
+        # there needs to be 1 length per possible lig
+        ANN_bondl = len(
+            [item for items in batslist for item in items])*[False]
+        if args.debug:
+            if ANN_reason == 'found incorrect ligand symmetry':
+                # This is a workaround so as to not have to change
+                # report files checked by GitHub CI when running test
+                # cases, which would require everyone using molSimplify
+                # from source to have to git pull the new files before
+                # any new commits
+                print("ANN call failed with reason: either found "
+                      "incorrect ligand symmetry, or see ANN "
+                      "messages above")
+            else:
+                print(("ANN call failed with reason: " + ANN_reason))
     return ANN_flag, ANN_bondl, ANN_reason, ANN_attributes, catalysis_flag
 
 
@@ -466,14 +465,21 @@ def init_ligand(args, lig, tcats, keepHs, i):
                 if args.debug:
                     print(f'modifying charge down from {lig3D.charge}')
                     try:
-                        print(f'Debug keepHs check\nRemoving? {keepHs} \ni = {i}, j = {j}\nlig = \n{lig.coords()}\nkeepHs[i]: {keepHs[i]}\n'
+                        print('Debug keepHs check\n'
+                              f'Removing? {keepHs} \n'
+                              f'i = {i}, j = {j}\n'
+                              f'lig = \n{lig.coords()}\n'
+                              f'keepHs[i]: {keepHs[i]}\n'
                               f'length of keepHs list : {len(keepHs)}')
                     except (AttributeError, IndexError):
                         # Could fail because lig has no Attribute coords
                         # or because keepHs has no element with Index i
                         pass
-                # Need to shift all connecting atom indices if they are greater than Hs[0], i.e. the index of the hydrogen atom that is connected to the current connecting atom and is to be removed.
-                # Note that only one hydrogen atom is removed at the most under the current implementation.
+                # Need to shift all connecting atom indices if they are greater
+                # than Hs[0], i.e. the index of the hydrogen atom that is
+                # connected to the current connecting atom and is to be removed.
+                # Note that only one hydrogen atom is removed at the most under
+                # the current implementation.
                 for _i, connecting_index in enumerate(lig.cat):
                     if connecting_index > Hs[0]:
                         lig.cat[_i] -= 1
@@ -509,8 +515,8 @@ def modifybackbonep(backb, pangles):
     """
     for i, ll in enumerate(pangles):
         if ll:
-            theta = pi*float(ll.split('/')[0])/180.0
-            phi = pi*float(ll.split('/')[-1])/180.0
+            theta = np.pi*float(ll.split('/')[0])/180.0
+            phi = np.pi*float(ll.split('/')[-1])/180.0
             backb[i+1] = PointTranslateSph(backb[0], backb[i+1],
                                            [distance(backb[0], backb[i+1]), theta, phi])
     return backb
@@ -540,7 +546,8 @@ def distortbackbone(backb, distort):
     return backb
 
 
-def smartreorderligs(args, ligs, dentl, licores):
+def smartreorderligs(ligs: List[str], dentl: List[int],
+                     ligalign: bool = True) -> List[int]:
     """Smart reorder ligands by denticity (-ligalign True)
 
     Parameters
@@ -551,40 +558,38 @@ def smartreorderligs(args, ligs, dentl, licores):
             List of ligands as ligand names.
         dentl : list
             List of ligand denticities.
-        licores : dict
-            Ligand dictionary as in molSimplify.
 
     Returns
     -------
-        indcs : list
+        indices : list
             Reordered ligand indices.
 
     """
 
     # reorder ligands
-    if not args.ligalign:
-        indcs = list(range(0, len(ligs)))
-        return indcs
+    if not ligalign:
+        indices = list(range(0, len(ligs)))
+        return indices
     lsizes = []
     for ligand in ligs:
-        lig, emsg = lig_load(ligand)  # load ligand
+        lig, _ = lig_load(ligand)  # load ligand
         lig.convert2mol3D()
         lsizes.append(lig.natoms)
-    # group by denticities
-    dents = list(set(dentl))
-    ligdentsidcs = [[] for _ in dents]
-    for i, dent in enumerate(dentl):
-        ligdentsidcs[dents.index(dent)].append(i)
+    # sort ligands into subsets by denticity, since set() sort the items
+    # this list goes from lowest to highest denticity, e.g. first list entry
+    # contains all monodentate indices, second all bidentates...
+    ligdentsidcs = [[i for i, dent in enumerate(dentl) if dent == unique_dent]
+                    for unique_dent in set(dentl)]
     # sort by highest denticity first
     ligdentsidcs = list(reversed(ligdentsidcs))
-    indcs = []
+    indices = []
     # within each group sort by size (smaller first)
     for ii, dd in enumerate(ligdentsidcs):
         locs = [lsizes[i] for i in dd]
         locind = [i[0] for i in sorted(enumerate(locs), key=lambda x:x[1])]
         for li in locind:
-            indcs.append(ligdentsidcs[ii][li])
-    return indcs
+            indices.append(ligdentsidcs[ii][li])
+    return indices
 
 
 def ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
@@ -594,7 +599,9 @@ def ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
     Parameters
     ----------
         ff : str
-            Name force field to use. Available options are MMFF94, UFF, Ghemical, GAFF, XTB. (XTB only works if the xtb command-line utility is installed.)
+            Name force field to use. Available options are MMFF94, UFF,
+            Ghemical, GAFF, XTB.
+            (XTB only works if the xtb command-line program is installed.)
         mol : mol3D
             mol3D instance of molecule to be optimized.
         connected : list
@@ -657,7 +664,10 @@ def openbabel_ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
         connected : list
             List of indices of connection atoms to metal.
         constopt : int
-            Flag for constrained optimization - 0: unconstrained, 1: fixed connecting atom positions, 2: fixed connecting atom distances.
+            Flag for constrained optimization
+                0: unconstrained,
+                1: fixed connecting atom positions,
+                2: fixed connecting atom distances.
         frozenats : list
             List of frozen atom indices.
         frozenangles : bool
@@ -729,7 +739,8 @@ def openbabel_ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
             for m in indmtls:
                 # first delete all metal-ligand bonds excluding bridging atoms
                 for i in range(len(mol.getBondedAtoms(m))):
-                    if OBMol.GetBond(m+1, mol.getBondedAtoms(m)[i]+1) is not None and mol.getBondedAtoms(m)[i] not in bridgingatoms:
+                    if (OBMol.GetBond(m+1, mol.getBondedAtoms(m)[i]+1) is not None
+                            and mol.getBondedAtoms(m)[i] not in bridgingatoms):
                         OBMol.DeleteBond(OBMol.GetBond(
                             m+1, mol.getBondedAtoms(m)[i]+1))
                         # print('FFopt deleting bond')
@@ -760,8 +771,10 @@ def openbabel_ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
             # for iiat, atom in enumerate(openbabel.OBMolAtomIter(OBMol)):
             #     print((' atom '+str(iiat)+' atomic num '+str(atom.GetAtomicNum())+' valence ' +
             #            str(atom.GetValence()) + ' is fixed ' + str(constr.IsFixed(iiat+1))))
-
-            print('Commented out')  # Commented out the preceding for loop because it was throwing the following error -> AttributeError: 'OBAtom' object has no attribute 'GetValence'
+            # Note: Commented out the preceding for loop because it was
+            # throwing the following error:
+            # AttributeError: 'OBAtom' object has no attribute 'GetValence'
+            print('Commented out')
         # set up forcefield
         s = forcefield.Setup(OBMol, constr)
         if not s:
@@ -779,13 +792,7 @@ def openbabel_ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
                     break
                 i += 1
         elif nsteps != 0:
-            try:
-                n = nsteps
-            except AssertionError:
-                # To whoever encounters this: Please replace AssertionError
-                # with whatever we are actually trying to except. Really
-                # do not know what could raise an Exception here. RM 2022/02/17
-                n = 100
+            n = nsteps
             if debug:
                 print(('running ' + str(n) + ' steps'))
             forcefield.ConjugateGradients(n)
@@ -812,7 +819,7 @@ def openbabel_ffopt(ff, mol, connected, constopt, frozenats, frozenangles,
         # if len(connected) < 2:
         # mol.OBMol.localopt('mmff94',100) # add hydrogens and coordinates
         OBMol = mol.OBMol  # convert to OBMol
-        s = forcefield.Setup(OBMol, constr)
+        _ = forcefield.Setup(OBMol, constr)
         # force field optimize structure
         if OBMol.NumHvyAtoms() > 10:
             if debug:
@@ -1048,7 +1055,6 @@ def align_lig_centersym(corerefcoords, lig3D, atom0, core3D, EnableAutoLinearBen
 
     """
     # rotate to align center of symmetry
-    globs = globalvars()
     r0 = corerefcoords
     r1 = lig3D.getAtom(atom0).coords()
     lig3Db = mol3D()
@@ -1067,12 +1073,15 @@ def align_lig_centersym(corerefcoords, lig3D, atom0, core3D, EnableAutoLinearBen
     lig3D = lig3D if (d1 < d2) else lig3Db  # pick best one
     # additional rotation for bent terminal connecting atom:
     if auxmol.natoms == 1:
-        if distance(auxmol.getAtomCoords(0), lig3D.getAtomCoords(atom0)) > 0.8*(auxmol.getAtom(0).rad + lig3D.getAtom(atom0).rad) and EnableAutoLinearBend:
+        if (distance(auxmol.getAtomCoords(0), lig3D.getAtomCoords(atom0))
+                > 0.8*(auxmol.getAtom(0).rad + lig3D.getAtom(atom0).rad)
+                and EnableAutoLinearBend):
             print('bending of linear terminal ligand')
             # warning: force field might overwrite this
             # warning: skipping this part because
             # we no longer understand it
             if False:
+                globs = globalvars()
                 r1 = lig3D.getAtom(atom0).coords()
                 r2 = auxmol.getAtom(0).coords()
                 theta, u = rotation_params([1, 1, 1], r1, r2)
@@ -1084,7 +1093,7 @@ def align_lig_centersym(corerefcoords, lig3D, atom0, core3D, EnableAutoLinearBen
 
 
 def align_linear_pi_lig(corerefcoords, lig3D, atom0, ligpiatoms):
-    """Aligns a linear pi ligand's connecting point to the metal-ligand axis
+    """Aligns a linear pi ligand's connecting point to the metal-ligand axis.
 
     Parameters
     ----------
@@ -1115,7 +1124,9 @@ def align_linear_pi_lig(corerefcoords, lig3D, atom0, ligpiatoms):
         lig3D_tmp.copymol3D(lig3D)
         lig3D_tmp = rotate_around_axis(
             lig3D_tmp, lig3D_tmp.getAtom(atom0).coords(), u, theta)
-        # objfunc = abs(vecangle(vecdiff(lig3D_tmp.getAtom(atom0).coords(),corerefcoords),vecdiff(lig3D_tmp.getAtom(ligpiatoms[0]).coords(),lig3D_tmp.getAtom(ligpiatoms[1]).coords()))-90)
+        # objfunc = abs(vecangle(vecdiff(lig3D_tmp.getAtom(atom0).coords(),corerefcoords),
+        #                        vecdiff(lig3D_tmp.getAtom(ligpiatoms[0]).coords(),
+        #                                lig3D_tmp.getAtom(ligpiatoms[1]).coords())) - 90)
         objfunc = abs(distance(lig3D_tmp.getAtom(ligpiatoms[0]).coords(
         ), corerefcoords) - distance(lig3D_tmp.getAtom(ligpiatoms[1]).coords(), corerefcoords))
         if objfunc < objfuncopt:
@@ -1144,6 +1155,93 @@ def align_linear_pi_lig(corerefcoords, lig3D, atom0, ligpiatoms):
     lig3D_aligned = mol3D()
     lig3D_aligned.copymol3D(lig3D)
     return lig3D_aligned
+
+
+def rotation_objective_func(rotations, lig3D, atom0, ligpiatoms, metal_lig_vec, directional_vectors):
+    """Objective function for finding rotations that make an aromatic ring perpendicular to the metal-ligand vector.
+
+    Parameters
+    ----------
+        rotations : list
+            Floats that indicate angles by which to rotate the ligand. Length is 3.
+        lig3D : mol3D
+            mol3D class instance of the ligand.
+        atom0 : int
+            Ligand connecting atom index. Here, refers to the fictitious atom in the center of the aromatic ring.
+        ligpiatoms : list
+            List of ligand pi-connecting atom indices.
+        metal_lig_vec : np.array
+            Vector from the metal to the fictitious atom in the center of the aromatic ring. Shape is (3,)
+        directional_vectors : list
+            Numpy arrays of the x-axis vector, y-axis vector, and z-axis vector. Length is 3.
+
+    Returns
+    -------
+        lig3D_aligned : mol3D
+            mol3D class instance of aligned ligand.
+
+    """
+    lig3D_tmp = mol3D()
+    lig3D_tmp.copymol3D(lig3D)        
+
+    for _i in range(3): # 3 axes of rotation
+        # Three rotations
+        rotate_around_axis(lig3D_tmp, lig3D_tmp.getAtom(atom0).coords(), directional_vectors[_i], rotations[_i])
+
+    # Get the best fit plane for the aromatic atoms.
+    aromatic_coordinates = np.zeros((3, len(ligpiatoms)))
+    for idx, _i in enumerate(ligpiatoms): # Iterate over the aromatic atoms
+        current_coordinates = lig3D_tmp.getAtom(_i).coords()
+
+        for _j in range(3): # Iterate over the three dimensions of space
+            aromatic_coordinates[_j, _i] =  current_coordinates[_j]
+
+    normal_vector_plane = best_fit_plane(aromatic_coordinates) # plane formed by the aromatic ring atoms
+
+    # The roots for this objective function are to be found
+    normalized_metal_lig_vec = metal_lig_vec / np.linalg.norm(metal_lig_vec)
+    normalized_normal_vector_plane = normal_vector_plane / np.linalg.norm(normal_vector_plane)
+    return normalized_metal_lig_vec - normalized_normal_vector_plane
+
+
+def align_pi_ring_lig(corerefcoords, lig3D, atom0, ligpiatoms, u):
+    """Rotates the ligand such that the aromatic ring that bonds to the central metal is perpendicular to the vector from the metal to the fictitous atom in the center of the ring.
+
+    Parameters
+    ----------
+        corerefcoords : list
+            Core reference coordinates. These are the coordinates of the central metal.
+        lig3D : mol3D
+            mol3D class instance of the ligand.
+        atom0 : int
+            Ligand connecting atom index. Here, refers to the fictitious atom in the center of the aromatic ring, since we have a ligand that coordinates through an aromatic ring.
+        ligpiatoms : list
+            List of ligand pi-connecting atom indices.
+        u : list
+            Vector from the metal to the fictitious atom in the center of the aromatic ring. Length is 3.
+
+    Returns
+    -------
+        lig3D : mol3D
+            mol3D class instance of aligned ligand.
+
+    """
+    x_vec = np.array([1, 0, 0 ])
+    y_vec = np.array([0, 1, 0])
+    z_vec = np.array([0, 0, 1])
+    directional_vectors = [x_vec, y_vec, z_vec]
+
+    # use a solver to find the rotations around the three vectors (x, y, z) required such that
+    # the plane formed by the aromatic ring atoms is perpendicular to u
+    from scipy.optimize import fsolve
+    initial_guess = [0, 0, 0]
+    rotations = fsolve(rotation_objective_func, initial_guess, args=(lig3D, atom0, ligpiatoms, np.array(u), directional_vectors))
+
+    # rotate lig3D by the three rotations found
+    for _i in range(3): # 3 axes of rotation
+        rotate_around_axis(lig3D, lig3D.getAtom(atom0).coords(), directional_vectors[_i], rotations[_i])
+
+    return lig3D
 
 
 def check_rotate_linear_lig(corerefcoords, lig3D, atom0):
@@ -1208,7 +1306,7 @@ def check_rotate_symm_lig(corerefcoords, lig3D, atom0, core3D):
         r2 = lig3D.getAtom(at[1]).coords()
         theta, u = rotation_params(r0, r1, r2)
         theta = vecangle(u, vecdiff(r0, corerefcoords))
-        urot = cross(u, vecdiff(r0, corerefcoords))
+        urot = np.cross(u, vecdiff(r0, corerefcoords))
         # rotate around axis and get both images
         lig3Db = mol3D()
         lig3Db.copymol3D(lig3D)
@@ -1255,7 +1353,7 @@ def rotate_MLaxis_minimize_steric(corerefcoords, lig3D, atom0, core3D):
         lig3D = rotate_around_axis(lig3D, r1, u, dtheta)
         d0 = lig3D.mindist(core3D)  # shortest distance
         d0cm = lig3D.distance(core3D)  # center of mass distance
-        iteropt = d0cm+10*log(d0)
+        iteropt = d0cm+10*np.log(d0)
         if (iteropt > optmax):  # if better conformation, keep
             lig3Db = mol3D()
             lig3Db.copymol3D(lig3D)
@@ -1330,9 +1428,9 @@ def rotate_catom_fix_Hs(lig3D, catoms, n, mcoords, core3D):
                     refpt = confrag3D.getAtomCoords(0)
                     u = vecdiff(refpt, anchor)
                     dtheta = 5
-                    objs = []
+                    # objs = []
                     objopt = 0
-                    localmaxs = []
+                    # localmaxs = []
                     thetas = list(range(0, 360, dtheta))
                     for theta in thetas:
                         confrag3Dtmp = rotate_around_axis(
@@ -1396,7 +1494,7 @@ def rotate_catom_fix_Hs(lig3D, catoms, n, mcoords, core3D):
     return lig3D_aligned
 
 
-def rotate_catoms_fix_Hs(lig3D, catoms, mcoords, core3D):
+def rotate_catoms_fix_Hs(lig3D: mol3D, catoms: List[int], mcoords, core3D: mol3D) -> mol3D:
     """Rotates connecting atoms of multidentate ligands to improve H atom placement.
     Loops over rotate_catom_fix_Hs().
 
@@ -1425,7 +1523,10 @@ def rotate_catoms_fix_Hs(lig3D, catoms, mcoords, core3D):
     return lig3D_aligned
 
 
-def get_MLdist(args, lig3D, atom0, ligand, metal, MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds):
+def get_MLdist(metal: atom3D, oxstate: str, spin: str, lig3D: mol3D,
+               atom0: int, ligand: str, MLb: List[str], i: int,
+               ANN_flag: bool, ANN_bondl: float, this_diag: run_diag,
+               MLbonds: dict, debug: bool = False) -> float:
     """Gets target M-L distance from desired source (custom, sum cov rad or ANN).
     Aligns a monodentate ligand to core connecting atom coordinates.
 
@@ -1471,35 +1572,39 @@ def get_MLdist(args, lig3D, atom0, ligand, metal, MLb, i, ANN_flag, ANN_bondl, t
     else:
         # otherwise, check for exact DB match
         bondl, exact_match = get_MLdist_database(
-            args, metal, lig3D, atom0, ligand, MLbonds)
+            metal, oxstate, spin, lig3D, atom0, ligand, MLbonds, debug)
         try:
             this_diag.set_dict_bl(bondl)
         except AttributeError:
             pass
         if not exact_match and ANN_flag:
             # if no exact match found and ANN enabled, use it
-            if args.debug:
-                print('no M-L match in DB, using ANN')
+            if debug:
+                print('no exact M-L match in DB, using ANN')
             bondl = ANN_bondl
         elif exact_match:
             print('using exact M-L match from DB')
         else:
-            print(
-                'Warning: ANN not active and exact M-L match not found in DB, distance may not be accurate')
-            print(('using DB distance of '+str(bondl)))
+            print('Warning: ANN not active and exact M-L match not found in '
+                  'DB, distance may not be accurate')
+            print(f'using partial DB match distance of {bondl}')
     return bondl
 
 
-def get_MLdist_database(args, metal, lig3D, atom0, ligand, MLbonds):
+def get_MLdist_database(metal: atom3D, oxstate: str, spin: str, lig3D: mol3D,
+                        atom0: int, ligand: str, MLbonds: dict,
+                        debug=False) -> Tuple[float, bool]:
     """Gets target M-L distance from desired source (custom, sum cov rad or ANN).
     Aligns a monodentate ligand to core connecting atom coordinates.
 
     Parameters
     ----------
-        args : Namespace
-            Namespace of arguments.
         metal : atom3D
             atom3D class instance of the first atom (usually a metal).
+        oxstate:  str:
+            oxidation state
+        spin : str
+            spin state
         lig3D : mol3D
             mol3D class instance of the ligand.
         atom0 : int
@@ -1517,15 +1622,16 @@ def get_MLdist_database(args, metal, lig3D, atom0, ligand, MLbonds):
             Flag for database match.
     """
     # check for roman letters in oxstate
-    if args.oxstate:  # if defined put oxstate in keys
-        if args.oxstate in list(romans.keys()):
-            oxs = romans[args.oxstate]
+    if oxstate:  # if defined put oxstate in keys
+        if oxstate in romans.keys():
+            oxs = romans[oxstate]
         else:
-            oxs = args.oxstate
+            oxs = oxstate
     else:
         oxs = '-'
     # check for spin multiplicity
-    spin = args.spin if args.spin else '-'
+    spin = spin if spin else '-'
+    # Build possible keys in descending order of specificity
     key = []
     key.append((metal.sym, oxs, spin, lig3D.getAtom(atom0).sym, ligand))
     # disregard exact ligand
@@ -1534,20 +1640,19 @@ def get_MLdist_database(args, metal, lig3D, atom0, ligand, MLbonds):
     key.append((metal.sym, '-', '-', lig3D.getAtom(atom0).sym, ligand))
     # else just consider bonding atom
     key.append((metal.sym, '-', '-', lig3D.getAtom(atom0).sym, '-'))
-    found = False
     exact_match = False
     # search for data
     for kk in key:
-        if (kk in list(MLbonds.keys())):  # if exact key in dictionary
+        if kk in MLbonds.keys():  # if exact key in dictionary
             bondl = float(MLbonds[kk])
-            found = True
             if (kk == ((metal.sym, oxs, spin, lig3D.getAtom(atom0).sym, ligand))):  # exact match
                 exact_match = True
             break
-    if not found:  # last resort covalent radii
+    else:  # If no match in dict (no break encountered):
+        # last resort sum of covalent radii
         bondl = metal.rad + lig3D.getAtom(atom0).rad
-    if args.debug:
-        print(('ms default distance is  ' + str(bondl)))
+    if debug:
+        print(f'ms default distance is {bondl}')
     return bondl, exact_match
 
 
@@ -1614,10 +1719,10 @@ def align_dent2_catom2_coarse(args, lig3D, core3D, catoms, r1, r0, m3D, batoms, 
     r21 = [a-b for a, b in zip(lig3D.getAtom(catoms[1]).coords(), r1)]
     r21n = [a-b for a, b in zip(m3D.getAtom(batoms[1]).coords(), r1)]
     if (norm(r21)*norm(r21n)) > 1e-8:
-        theta = 180*arccos(dot(r21, r21n)/(norm(r21)*norm(r21n)))/pi
+        theta = 180*np.arccos(np.dot(r21, r21n)/(norm(r21)*norm(r21n)))/np.pi
     else:
         theta = 0.0
-    u = cross(r21, r21n)
+    u = np.cross(r21, r21n)
     lig3Db = mol3D()
     lig3Db.copymol3D(lig3D)
     # rotate around axis and get both images
@@ -1644,7 +1749,7 @@ def align_dent2_catom2_coarse(args, lig3D, core3D, catoms, r1, r0, m3D, batoms, 
     # theta,ub = rotation_params(corerefcoords,r0b,r1b)
     # theta,ul = rotation_params(rm,r0l,r1l)
     # if (norm(ub)*norm(ul)) > 1e-8:
-    #     theta = 180*arccos(dot(ub,ul)/(norm(ub)*norm(ul)))/pi-180.0
+    #     theta = 180*np.arccos(np.dot(ub,ul)/(norm(ub)*norm(ul)))/pi-180.0
     # else:
     #     theta = 0.0
     # rotate around axis
@@ -1683,9 +1788,9 @@ def align_dent2_catom2_coarse(args, lig3D, core3D, catoms, r1, r0, m3D, batoms, 
     #     rm0, rm1 = lig3D.centermass(), lig3Db.centermass()
     #     theta, ul0 = rotation_params(rm0, r0l, r1l)
     #     theta, ul1 = rotation_params(rm1, r0l, r1l)
-    #     th0 = 180*arccos(dot(ub, ul0)/(norm(ub)*norm(ul0)))/pi
+    #     th0 = 180*np.arccos(np.dot(ub, ul0)/(norm(ub)*norm(ul0)))/pi
     #     th0 = min(abs(th0), abs(180-th0))
-    #     th1 = 180*arccos(dot(ub, ul1)/(norm(ub)*norm(ul1)))/pi
+    #     th1 = 180*np.arccos(np.dot(ub, ul1)/(norm(ub)*norm(ul1)))/pi
     #     th1 = min(abs(th1), abs(180-th1))
     #     lig3D = lig3D if th0 < th1 else lig3Db
     # except:
@@ -1758,7 +1863,7 @@ def align_dent2_catom2_refined(args, lig3D, catoms, bondl, r1, r0, core3D, rtarg
                 try:
                     # but if ligand still cannot be aligned, instead force
                     # alignment with a huge cutoff and then relax later
-                    theta1 = 180*arccos(0.5*r01/bondl)/pi
+                    theta1 = 180*np.arccos(0.5*r01/bondl)/np.pi
                 except AssertionError:
                     # To whoever encounters this: Please replace AssertionError
                     # with whatever we are actually trying to except. I am
@@ -1799,7 +1904,10 @@ def align_dent2_catom2_refined(args, lig3D, catoms, bondl, r1, r0, core3D, rtarg
     return lig3D_aligned
 
 
-def align_dent1_lig(args, cpoint, core3D, coreref, ligand, lig3D, catoms, rempi=False, ligpiatoms=[], MLb=[], ANN_flag=False, ANN_bondl=[], this_diag=0, MLbonds=dict(), MLoptbds=None, i=0, EnableAutoLinearBend=True):
+def align_dent1_lig(args, cpoint, core3D, coreref, ligand, lig3D, catoms,
+                    rempi=False, ligpiatoms=[], MLb=[], ANN_flag=False,
+                    ANN_bondl: float = np.nan, this_diag=0, MLbonds=dict(),
+                    MLoptbds=None, i=0, EnableAutoLinearBend=True):
     """Aligns a monodentate ligand to core connecting atom coordinates.
 
     Parameters
@@ -1854,15 +1962,18 @@ def align_dent1_lig(args, cpoint, core3D, coreref, ligand, lig3D, catoms, rempi=
     # translate ligand to overlap with backbone connecting point
     lig3D.alignmol(lig3D.getAtom(atom0), cpoint)
     # determine bond length (database/cov rad/ANN)
-    bondl = get_MLdist(args, lig3D, atom0, ligand, coreref,
-                       MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds)
+    bondl = get_MLdist(coreref, args.oxstate, args.spin, lig3D, atom0, ligand,
+                       MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds, args.debug)
     MLoptbds.append(bondl)
     # align ligand to correct M-L distance
     u = vecdiff(cpoint.coords(), corerefcoords)
     lig3D = aligntoaxis2(lig3D, cpoint.coords(), corerefcoords, u, bondl)
-    if rempi and len(ligpiatoms) == 2:
-        # align linear (non-arom.) pi-coordinating ligand
-        lig3D = align_linear_pi_lig(corerefcoords, lig3D, atom0, ligpiatoms)
+    if rempi: # pi-coordinating ligand
+        if len(ligpiatoms) == 2:
+            # align linear (non-arom.) pi-coordinating ligand
+            lig3D = align_linear_pi_lig(corerefcoords, lig3D, atom0, ligpiatoms)
+        else: # 5 and 6 membered rings dealt with here
+            lig3D = align_pi_ring_lig(corerefcoords, lig3D, atom0, ligpiatoms, u)
     elif lig3D.natoms > 1:
         # align ligand center of symmetry
         lig3D = align_lig_centersym(
@@ -1880,7 +1991,9 @@ def align_dent1_lig(args, cpoint, core3D, coreref, ligand, lig3D, catoms, rempi=
     return lig3D_aligned, MLoptbds
 
 
-def align_dent2_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, catoms, MLb, ANN_flag, ANN_bondl, this_diag, MLbonds, MLoptbds, frozenats, i):
+def align_dent2_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D,
+                    catoms, MLb, ANN_flag, ANN_bondl: float, this_diag, MLbonds,
+                    MLoptbds, frozenats, i):
     """Aligns a bidentate ligand to core connecting atom coordinates.
 
     Parameters
@@ -1943,8 +2056,8 @@ def align_dent2_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, c
     lig3D, r1b = align_dent2_catom2_coarse(
         args, lig3D, core3D, catoms, r1, r0, m3D, batoms, corerefcoords)
     # get bond length
-    bondl = get_MLdist(args, lig3D, atom0, ligand, coreref,
-                       MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds)
+    bondl = get_MLdist(coreref, args.oxstate, args.spin, lig3D, atom0, ligand,
+                       MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds, args.debug)
     MLoptbds.append(bondl)
     MLoptbds.append(bondl)
     lig3D, dxyz = setPdistance(lig3D, r1, r0, bondl)
@@ -1968,7 +2081,9 @@ def align_dent2_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, c
     return lig3D_aligned, frozenats, MLoptbds
 
 
-def align_dent3_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, catoms, MLb, ANN_flag, ANN_bondl, this_diag, MLbonds, MLoptbds, frozenats, i):
+def align_dent3_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D,
+                    catoms, MLb, ANN_flag, ANN_bondl, this_diag, MLbonds,
+                    MLoptbds, frozenats, i):
     """Aligns a tridentate ligand to core connecting atom coordinates
 
     Parameters
@@ -2055,8 +2170,8 @@ def align_dent3_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, c
     theta, ul = rotation_params(rl0, rl1, rl2)
     theta, ulb = rotation_params(rl0b, rl1b, rl2b)
     theta, uc = rotation_params(rc0, rc1, rc2)
-    d1 = norm(cross(ul, uc))
-    d2 = norm(cross(ulb, uc))
+    d1 = norm(np.cross(ul, uc))
+    d2 = norm(np.cross(ulb, uc))
     lig3D = lig3D if (d1 < d2) else lig3Db  # pick best one
     # 3. correct if not symmetric
     theta0, urotaux = rotation_params(lig3D.getAtom(catoms[0]).coords(
@@ -2091,8 +2206,9 @@ def align_dent3_lig(args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, c
     d2 = min(distance(lig3Db.getAtom(catoms[2]).coords(), m3D.getAtom(batoms[2]).coords(
     )), distance(lig3Db.getAtom(catoms[2]).coords(), m3D.getAtom(batoms[0]).coords()))
     lig3D = lig3D if d1 < d2 else lig3Db
-    bondl = get_MLdist(args, lig3D, atom0, ligand, m3D.getAtom(
-        0), MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds)
+    bondl = get_MLdist(m3D.getAtom(0), args.oxstate, args.spin, lig3D, atom0,
+                       ligand, MLb, i, ANN_flag, ANN_bondl, this_diag, MLbonds,
+                       args.debug)
     for iib in range(0, 3):
         MLoptbds.append(bondl)
     # set correct distance
@@ -2149,8 +2265,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
         args.gui.iWtxt.setText('\nGenerating complex with core:'+args.core +
                                ' and ligands: ' + ' '.join(ligs)+'\n'+args.gui.iWtxt.toPlainText())
         args.gui.app.processEvents()
-    # import gui options
-    if args.gui:
+        # import gui options
         from Classes.mWidgets import mQDialogWarn
     # initialize variables
     emsg, complex3D = False, []
@@ -2167,6 +2282,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
     backbatoms = []
     batslist = []
     bats = []
+    ffoption_list = [] # for each ligand, keeps track of what the forcefield option is.
     # load bond data
     MLbonds = loaddata('/Data/ML.dat')
     # calculate occurrences, denticities etc for all ligands
@@ -2200,9 +2316,36 @@ def mcomplex(args, ligs, ligoc, licores, globs):
         for j in range(0, oc_i):
             occs0[i] += 1
             toccs += dent_i
+
+        if 'l' in args.ffoption: # ligands.dict control for force field option
+            if ligname in list(licores.keys()): # ligand is in the ligands dictionary
+                forcefield_option_current_ligand = licores[ligname][4][0].lower()
+                ffoption_list.append(forcefield_option_current_ligand)
+            else: # default to 'ba' for ligands not in ligands.dict
+                ffoption_list.append('ba')
+
+    if 'l' in args.ffoption: # ligands.dict control for force field option
+        # Setting args.ffoption to the least-action option among the ligands.
+        # So, if at least one of the ligands has 'n' as the forcefield option, no optimization.
+        # Otherwise, if there is any mixture of 'b' and 'a' among the ligands, go with 'n' for consistency.
+        # Otherwise, if there is a mixture of 'b' and 'ba', go with 'b'.
+        # Otherwise, if there is a mixture of 'a' and 'ba', go with 'a'.
+        # Only if all ligands have 'ba' as the forcefield option do we go with 'ba'.
+        ffoption_set = set(ffoption_list)
+        if 'n' in ffoption_set:
+            args.ffoption = 'n'
+        elif 'b' in ffoption_set and 'a' in ffoption_set:
+            args.ffoption = 'n'
+        elif 'b' in ffoption_set:
+            args.ffoption = 'b'
+        elif 'a' in ffoption_set:
+            args.ffoption = 'a'
+        else:
+            args.ffoption = 'ba'
+
     # sort by descending denticity (needed for adjacent connection atoms)
     ligandsU, occsU, dentsU = ligs, occs0, dentl  # save unordered lists
-    indcs = smartreorderligs(args, ligs, dentl, licores)
+    indcs = smartreorderligs(ligs, dentl, args.ligalign)
     ligands = [ligs[i] for i in indcs]  # sort ligands list
     occs = [occs0[i] for i in indcs]    # sort occurrences list
     tcats = [cats0[i] for i in indcs]   # sort connections list
@@ -2309,7 +2452,6 @@ def mcomplex(args, ligs, ligoc, licores, globs):
     if args.mligcatoms:
         for i in range(len(args.mligcatoms)):
             mligcatoms_ext.append(0)
-    initatoms = core3D.natoms  # initial number of atoms in core3D
     for i, ligand in enumerate(ligands):
         if args.debug:
             print('************')
@@ -2337,7 +2479,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
             if emsg:
                 return False, emsg
         # Skip = False
-        for j in range(0, occs[i]):
+        for j in range(0, occs[i]): # The number of occurrences of the current ligand.
             if args.debug:
                 print(('loading copy '+str(j) + ' of ligand ' +
                        ligand + ' with dent ' + str(dents[i])))
@@ -2371,8 +2513,10 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                 if args.debug:
                     print(('backbone atoms: ' + str(batoms)))
                 if (denticity == 1):
-                    lig3D, MLoptbds = align_dent1_lig(args, cpoint, core3D, coreref, ligand, lig3D, catoms,
-                                                      rempi, ligpiatoms, MLb, ANN_flag, ANN_bondl[ligsused], this_diag, MLbonds, MLoptbds, i)
+                    lig3D, MLoptbds = align_dent1_lig(
+                        args, cpoint, core3D, coreref, ligand, lig3D, catoms,
+                        rempi, ligpiatoms, MLb, ANN_flag, ANN_bondl[ligsused],
+                        this_diag, MLbonds, MLoptbds, i)
                     if args.debug:
                         print(('adding monodentate at distance: ' + str(
                             ANN_bondl[totlig]) + '/'+str(MLb) + '/'+' at catoms ' + str(catoms)))
@@ -2380,10 +2524,14 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                         print((lig3D.printxyz()))
                 elif (denticity == 2):
                     lig3D, frozenats, MLoptbds = align_dent2_lig(
-                        args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, catoms, MLb, ANN_flag, ANN_bondl[ligsused], this_diag, MLbonds, MLoptbds, frozenats, i)
+                        args, cpoint, batoms, m3D, core3D, coreref, ligand,
+                        lig3D, catoms, MLb, ANN_flag, ANN_bondl[ligsused],
+                        this_diag, MLbonds, MLoptbds, frozenats, i)
                 elif (denticity == 3):
                     lig3D, frozenats, MLoptbds = align_dent3_lig(
-                        args, cpoint, batoms, m3D, core3D, coreref, ligand, lig3D, catoms, MLb, ANN_flag, ANN_bondl[ligsused], this_diag, MLbonds, MLoptbds, frozenats, i)
+                        args, cpoint, batoms, m3D, core3D, coreref, ligand,
+                        lig3D, catoms, MLb, ANN_flag, ANN_bondl[ligsused],
+                        this_diag, MLbonds, MLoptbds, frozenats, i)
                 elif (denticity == 4):
                     # note: catoms for ligand should be specified clockwise
                     # connection atoms in backbone
@@ -2431,8 +2579,10 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                     lig3D.translate(d0)
                     lig3D = rotate_mat(lig3D, U)
 
-                    bondl = get_MLdist(args, lig3D, atom0, ligand, m3D.getAtom(
-                        0), MLb, i, ANN_flag, ANN_bondl[ligsused], this_diag, MLbonds)
+                    bondl = get_MLdist(m3D.getAtom(0), args.oxstate, args.spin,
+                                       lig3D, atom0, ligand, MLb, i, ANN_flag,
+                                       ANN_bondl[ligsused], this_diag, MLbonds,
+                                       args.debug)
                     for iib in range(0, 4):
                         MLoptbds.append(bondl)
                 elif (denticity == 5):
@@ -2446,8 +2596,8 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                         break
                     # get center of mass
                     ligc = mol3D()
-                    for i in range(0, 4):  # 5 is the non-planar atom
-                        ligc.addAtom(lig3D.getAtom(catoms[i]))
+                    for c_i in range(0, 4):  # 5 is the non-planar atom
+                        ligc.addAtom(lig3D.getAtom(catoms[c_i]))
                     # translate ligand to the middle of octahedral
                     lig3D.translate(vecdiff(mcoords, ligc.centersym()))
                     # get plane
@@ -2462,7 +2612,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                     # normal vector to ligand plane
                     theta, ul = rotation_params(r0l, r1l, r2l)
                     theta = vecangle(uc, ul)
-                    u = cross(uc, ul)
+                    u = np.cross(uc, ul)
                     lig3Db = mol3D()
                     lig3Db.copymol3D(lig3D)
                     # rotate around axis to match planes
@@ -2476,8 +2626,8 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                     # rotate around center axis to match backbone atoms
                     r0l = vecdiff(lig3D.getAtom(catoms[0]).coords(), mcoords)
                     r1l = vecdiff(m3D.getAtom(totlig+1).coords(), mcoords)
-                    u = cross(r0l, r1l)
-                    theta = 180*arccos(dot(r0l, r1l)/(norm(r0l)*norm(r1l)))/pi
+                    u = np.cross(r0l, r1l)
+                    theta = 180*np.arccos(np.dot(r0l, r1l)/(norm(r0l)*norm(r1l)))/np.pi
                     lig3Db = mol3D()
                     lig3Db.copymol3D(lig3D)
                     lig3D = rotate_around_axis(lig3D, mcoords, u, theta)
@@ -2488,7 +2638,8 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                         catoms[0]).coords(), m3D.getAtom(batoms[0]).coords())
                     lig3D = lig3D if (d1 < d2) else lig3Db  # pick best one
                     bondl, exact_match = get_MLdist_database(
-                        args, core3D.getAtom(0), lig3D, catoms[0], ligand, MLbonds)
+                        core3D.getAtom(0), args.oxstate, args.spin, lig3D,
+                        catoms[0], ligand, MLbonds, args.debug)
                     # flip if necessary
                     if len(batslist) > ligsused:
                         nextatbats = batslist[ligsused]
@@ -2514,12 +2665,13 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                         break
                     # get center of mass
                     ligc = mol3D()
-                    for i in range(0, 6):
-                        ligc.addAtom(lig3D.getAtom(catoms[i]))
+                    for c_i in range(0, 6):
+                        ligc.addAtom(lig3D.getAtom(catoms[c_i]))
                     # translate metal to the middle of octahedral
                     core3D.translate(vecdiff(ligc.centersym(), mcoords))
                     bondl, exact_match = get_MLdist_database(
-                        args, core3D.getAtom(0), lig3D, catoms[0], ligand, MLbonds)
+                        core3D.getAtom(0), args.oxstate, args.spin, lig3D,
+                        catoms[0], ligand, MLbonds, args.debug)
                     for iib in range(0, 6):
                         MLoptbds.append(bondl)
                 auxm = mol3D()
@@ -2537,7 +2689,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                 core3D.convert2mol3D()
                 # remove dummy cm atom if requested
                 if rempi:
-                    core3D.deleteatom(core3D.natoms-1)
+                    core3D.deleteatom(core3D.natoms-1) # remove the fictitious center atom, for aromatic-bonding ligands like benzene
                 if args.debug:
                     print(('number of atoms in lig3D is ' + str(lig3D.natoms)))
                 if lig3D.natoms < 3:
@@ -2605,6 +2757,7 @@ def mcomplex(args, ligs, ligoc, licores, globs):
                 'saving a final debug copy of the complex named complex_after_final_ff.xyz')
             core3D.writexyz('complex_after_final_ff.xyz')
         # core3D,enc = ffopt(args.ff,core3D,connected,1,frozenats,freezeangles,MLoptbds,'Adaptive',args.debug)
+
     return core3D, complex3D, emsg, this_diag, subcatoms_ext, mligcatoms_ext
 
 
@@ -2678,7 +2831,7 @@ def structgen(args, rootdir, ligands, ligoc, globs, sernum, write_files=True):
             print('ONLY report wanted. Not building structure.')
             metal_mol = mol3D()
             metal_mol.addAtom(atom3D(args.core))
-            ### CURRENTLY only works for molsimplify ligands... ###
+            # CURRENTLY only works for molsimplify ligands...
             for i, name in enumerate(ligands):
                 this_mol, emsg = lig_load(name)
                 this_mol.convert2mol3D()
@@ -2687,7 +2840,7 @@ def structgen(args, rootdir, ligands, ligoc, globs, sernum, write_files=True):
                 this_con = this_mol.cat
                 ligs.append(this_lig)
                 cons.append(this_con)
-                if name not in list(licores.keys()):
+                if name not in list(licores.keys()): # ligand is not in the ligands dictionary
                     if args.smicat and len(args.smicat) >= (smilesligs+1):
                         if 'pi' in args.smicat[smilesligs]:
                             cats0.append(['c'])
@@ -2716,12 +2869,12 @@ def structgen(args, rootdir, ligands, ligoc, globs, sernum, write_files=True):
                     toccs += dent_i
             # sort by descending denticity (needed for adjacent connection atoms)
             ligandsU, occsU, dentsU = ligs, occs0, dentl  # save unordered lists
-            indcs = smartreorderligs(args, ligs, dentl, licores)
+            indcs = smartreorderligs(ligs, dentl, args.ligalign)
             lig_instances = [ligs[i] for i in indcs]  # sort ligands list
             occs = [occs0[i] for i in indcs]    # sort occurrences list
             tcats = [cats0[i] for i in indcs]   # sort connections list
             dents = [dentl[i] for i in indcs]   # sort denticities list
-            #### CURRENTLY ASSUMES EQ, AX1, AX2 in that ORDER, CANNOT HANDLE DENTICITIES OUT OF 1, 2, 4 #####
+            # CURRENTLY ASSUMES EQ, AX1, AX2 in that ORDER, CANNOT HANDLE DENTICITIES OUT OF 1, 2, 4
             eq_number = int(4/dents[0])
             eq_cons = eq_number*[cons[0]]
             eq_ligs = eq_number*[lig_instances[0]]
@@ -2756,33 +2909,10 @@ def structgen(args, rootdir, ligands, ligoc, globs, sernum, write_files=True):
         if '.xyz' in args.core:
             core3D.readfromxyz(args.core)
         else:
-            atom = atom3D()
-            atom.__init__(Sym=args.core, xyz=[0, 0, 0])
+            atom = atom3D(Sym=args.core, xyz=[0, 0, 0])
             core3D.addAtom(atom)
         name_core = args.core
 
-    # generate file name parts
-    ligname = ''
-    nosmiles = 0
-    for li in ligands:
-        if li not in list(licores.keys()):
-            if '.xyz' in li or '.mol' in li:
-                li = li.split('.')[-1]
-                li = li.rsplit('/')[-1]
-            else:
-                if args.sminame:
-                    if globs.nosmiles > 1:
-                        ismidx = nosmiles
-                    else:
-                        ismidx = 0
-                    if len(args.sminame) > ismidx:
-                        li = args.sminame[ismidx][0:2]
-                    else:
-                        li = 'smi'+str(nosmiles)
-                else:
-                    li = 'smi'+str(nosmiles)
-                nosmiles += 1
-        ligname += ''.join("%s" % li[0:2])
     if args.calccharge:
         args.charge = core3D.charge
         if args.debug:

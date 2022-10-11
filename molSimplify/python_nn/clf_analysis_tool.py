@@ -69,7 +69,7 @@ def dist_penalty(d):
     return np.exp(-1 * d ** 2)
 
 
-def get_entropy(dists, neighbor_targets):
+def get_entropy(dists, neighbor_targets) -> np.ndarray:
     entropies = []
     for ii, _neighbor_targets in enumerate(neighbor_targets):
         p0, p1 = dist_penalty(2), dist_penalty(2)
@@ -98,7 +98,7 @@ def get_entropy(dists, neighbor_targets):
 
 
 def get_layer_outputs(model, layer_index, input,
-                      training_flag=False):
+                      training_flag=False) -> np.ndarray:
     if not tf.__version__ >= '2.0.0':
         get_outputs = K.function([model.layers[0].input, K.learning_phase()],
                                  [model.layers[layer_index].output])

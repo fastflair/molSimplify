@@ -112,7 +112,7 @@ def import_from_cif(fst, return_extra_cif_info=False):
     else:
         emsg.append("Error in reading of cif file by openbabel")
         exit_status = 1
-    with open(fst) as f:
+    with open(fst, errors='ignore') as f: # ignore takes care of unicode errors in some cifs
         lines = f.readlines()
         for line in lines:
             linesplit = line.split()
@@ -171,7 +171,6 @@ def import_from_cif(fst, return_extra_cif_info=False):
 def center_of_sym(list_of_points):
     n = len(list_of_points)
 #    print('lop = ' + str(list_of_points))
-    csym = [0, 0, 0]
     csym = [float(sum(x)/n) for x in zip(*list_of_points)]
     return csym
 # get sets min z coord of mol3D to zero

@@ -133,7 +133,7 @@ def compareLG(xyz1, xyz2, thresh):
     if len(ligs1) != len(ligs2):
         passLG = False
         return passLG
-    for i in range(0, len(ligs1)):
+    for i in range(0, len(ligs1)): # Iterate over the ligands
         print("Checking geometry for ligand # ", i)
         ligs1[i], U, d0, d1 = kabsch(ligs1[i], ligs2[i])
         rmsd12 = ligs1[i].rmsd(ligs2[i])
@@ -153,16 +153,19 @@ def compareOG(xyz1, xyz2, thresh):
     print("Threshold for overall geometry check: ", thresh)
     return passOG
 
+
 def runtest_num_atoms_in_xyz(tmpdir, xyzfile):
     xyz_file1 = mol3D()
     xyz_file1.readfromxyz('tests/refs/' + xyzfile + '.xyz')
     xyz_file1.getNumAtoms()
 
-    xyz_file2 = open('tests/refs/'+ xyzfile + '.xyz').readlines()
+    with open('tests/refs/' + xyzfile + '.xyz', 'r') as f:
+        xyz_file2 = f.readlines()
     num_atoms = int(xyz_file2[0])
-    
+
     if num_atoms != xyz_file1.getNumAtoms():
         print('Something is wrong with the number of atoms read from the XYZ file!')
+
 
 def compareGeo(xyz1, xyz2, threshMLBL, threshLG, threshOG, slab=False):
     # Compare number of atoms
@@ -236,7 +239,8 @@ def parse4test(infile, tmpdir, isMulti=False, external={}):
             newdata += "-lig " + abs_smi + "\n"
             # fsmi = tmpdir.join(smi)
             # oldsmi=os.path.dirname(infile)+"/"+smi
-            # smidata=open(oldsmi).read()
+            # with open(oldsmi) as f:
+            #     smidata=f.read()
             # fsmi.write(smidata)
             # print "smi file is copied to the temporary running folder!"
     newdata += "-jobdir " + name + "\n"
@@ -272,8 +276,9 @@ def parse4testNoFF(infile, tmpdir):
         print("FF optimization used in original input file. "
               "Now test for no FF result.")
         for line in data:
+            # By getting rid of -ffoption, will use the force field option default, which is "N"
             if not (("-jobdir" in line) or ("-name" in line)
-                    or ("-ff " in line)):
+                    or ("-ff " in line) or ("-ffoption " in line)):
                 newdata += line
         newdata += "-jobdir " + newname + "\n"
         newdata += "-name " + newname + "\n"
@@ -309,7 +314,7 @@ def compare_report_new(report1, report2):
     with open(report1, 'r') as f_in:
         data1 = f_in.readlines()
     with open(report2, 'r') as f_in:
-        data2 = f_in.readlines()
+        data2 = f_in.readlines()  
     if data1 and data2:
         Equal = True
         dict1 = report_to_dict(data1)
@@ -598,8 +603,8 @@ def runtestNoFF(tmpdir, name, threshMLBL, threshLG, threshOG):
         print("Reference report status: ", pass_report)
         pass_qcin = compare_qc_input(output_qcin, ref_qcin)
         print("Reference qc input file: ", ref_qcin)
-        print("Test qc input file:", output_qcin)
-        print("Qc input status:", pass_qcin)
+        print("Test qc input file: ", output_qcin)
+        print("Qc input status: ", pass_qcin)
     return [passNumAtoms, passMLBL, passLG, passOG, pass_report, pass_qcin]
 
 

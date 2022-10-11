@@ -4,8 +4,6 @@ import logging
 from pkg_resources import resource_filename, Requirement
 from collections import OrderedDict
 import numpy as np
-import scipy.ndimage
-import scipy.misc
 import skimage.transform as skitransform
 import pickle
 import json
@@ -29,7 +27,7 @@ class dft_control:
     self.mode_allowed: allowed modes.
     self.step_decisions: steps at which the dynamic classifier can make predictions. (Resizing to be implemented).
     self.scrpath: path to the scratch directory.
-    self.geofile: filename of the optimization trajectory in a xyz file format. This is the minimum requirement to use 
+    self.geofile: filename of the optimization trajectory in a xyz file format. This is the minimum requirement to use
     the dynamic classifier.
     self.bofile: filename of the trajectory for the bond order matrix (for mode = "terachem").
     self.chargefile: filename of the trajectory for the Mulliken charge(for mode = "terachem").
@@ -329,9 +327,8 @@ class dft_control:
             raise KeyError("Mode is not recognized.")
         for idx, fname in list(self.features_dict[self.mode].items()):
             self.features[fname].append(dict_combined[fname])
-        f = open("features.json", "w")
-        json.dump(self.features, f)
-        f.close()
+        with open("features.json", "w") as f:
+            json.dump(self.features, f)
 
     def normalize_features(self):
         for idx, fname in list(self.features_dict[self.mode].items()):

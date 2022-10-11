@@ -42,3 +42,34 @@ jobs:
       env:
         SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK}}
         MATRIX_CONTEXT: ${{ toJson(matrix) }} # required
+
+  mypy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mypy types-setuptools types-PyYAML types-requests
+    - name: Typecheck with mypy
+      run: |
+        # Ignore Informatics, job_manager, and molscontrol for now
+        mypy --ignore-missing-imports --exclude '(Informatics|job_manager|molscontrol)' molSimplify
+
+    - name: Report Status
+      # Slack notifications only on the main repo
+      if: ${{ github.event_name != 'pull_request' && github.repository == 'hjkgrp/molSimplify' && job.status == 'failure'}}
+      #uses: ravsamhq/notify-slack-action@v1
+      uses: 8398a7/action-slack@v3
+      with:
+        fields: message,commit,author,workflow,job,took
+        status: ${{ job.status }}
+      env:
+        SLACK_WEBHOOK_URL: ${{secrets.SLACK_WEBHOOK}}
+        MATRIX_CONTEXT: ${{ toJson(matrix) }} # required

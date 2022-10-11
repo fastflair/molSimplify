@@ -3,7 +3,7 @@ import types
 
 
 def run_with_check(job: str, basedir: str, psi4_config: dict,
-                   success_count: int, run_func: types.FunctionType, 
+                   success_count: int, run_func: types.FunctionType,
                    error_scf: bool = True):
     print("====running on====: ", job)
     os.chdir(job)

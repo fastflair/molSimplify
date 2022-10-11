@@ -143,7 +143,7 @@ class atom3D:
         dz = xyz[2]-point[2]
         return [dx, dy, dz]
 
-    def ismetal(self, transition_metals_only=True):
+    def ismetal(self, transition_metals_only: bool = True) -> bool:
         """ Identify whether an atom is a metal.
 
         Parameters
@@ -229,3 +229,13 @@ class atom3D:
                 Desired EDIA score of atom
         """
         self.EDIA = score
+        
+    def EDIA(self):
+        """ Retrieves the EDIA score of an individual atom3D.
+
+        Returns
+        ----------
+            EDIA : float
+                EDIA score of atom
+        """
+        return self.EDIA

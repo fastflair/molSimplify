@@ -8,9 +8,11 @@
 #
 #  Adapted from:
 #
-#  [1] J. M. Blaney and J. S. Dixon, "Distance Geometry in Molecular Modeling", in Reviews in Computational Chemistry, VCH (1994)
+#  [1] J. M. Blaney and J. S. Dixon, "Distance Geometry in Molecular Modeling",
+#      in Reviews in Computational Chemistry, VCH (1994)
 #
-#  [2] G. Crippen and T. F. Havel, "Distance Geometry and Molecular Conformation", in Chemometrics Research Studies Series, Wiley (1988)
+#  [2] G. Crippen and T. F. Havel, "Distance Geometry and Molecular Conformation",
+#      in Chemometrics Research Studies Series, Wiley (1988)
 
 import numpy as np
 import numpy
@@ -18,6 +20,7 @@ import openbabel
 from scipy import optimize
 from math import sqrt, cos
 
+from typing import Dict
 from molSimplify.Classes.atom3D import atom3D
 from molSimplify.Classes.mol3D import mol3D
 from molSimplify.Classes.globalvars import (vdwrad)
@@ -28,9 +31,9 @@ from molSimplify.Scripts.geometry import (distance,
 from molSimplify.Scripts.io import (lig_load, loadcoord)
 
 
-def CosRule(AB, BC, theta):
+def CosRule(AB: float, BC: float, theta: float) -> float:
     """Applies the cosine rule to get the length of AC given lengths of AB, BC and angle ABC
-        
+
     Parameters
     ----------
         AB : float
@@ -39,7 +42,7 @@ def CosRule(AB, BC, theta):
             Length of BC.
         theta : float
             theta Angle in degrees.
-        
+
     Returns
     -------
         AC : float
@@ -51,9 +54,9 @@ def CosRule(AB, BC, theta):
     return AC
 
 
-def inverseCosRule(A, B, C):
+def inverseCosRule(A, B, C) -> float:
     """Apply the cosine rule to find the angle ABC given points A,B, and C.
-        
+
     Parameters
     ----------
         A : list
@@ -62,7 +65,7 @@ def inverseCosRule(A, B, C):
             Coordinates of B.
         C : list
             Coordinates of C.
-        
+
     Returns
     -------
         theta : float
@@ -79,7 +82,7 @@ def inverseCosRule(A, B, C):
 def GetBoundsMatrices(mol, natoms, catoms=[], shape=[], A=[]):
     """Generate distance bounds matrices. The basic idea is outlined in ref [1].
     We first apply 1-2 (bond length) and 1-3 (bond angle) constraints, read from the FF-optimized initial conformer.
-    Next, to bias the search towards coordinating conformers, approximate connection atom distance constraints based 
+    Next, to bias the search towards coordinating conformers, approximate connection atom distance constraints based
     on topological distances are also included.
 
     Parameters
@@ -94,7 +97,7 @@ def GetBoundsMatrices(mol, natoms, catoms=[], shape=[], A=[]):
             Dict containing angles.
         A : list
             List of lists making a distance 2 connectivity matrix.
-        
+
     Returns
     -------
         LB : np.array
@@ -168,7 +171,7 @@ def GetBoundsMatrices(mol, natoms, catoms=[], shape=[], A=[]):
 
 def Triangle(LB, UB, natoms):
     """Triangle inequality bounds smoothing. Copied from ref [2], pp. 252-253.
-    Scales O(N^3). 
+    Scales O(N^3).
 
     Parameters
     ----------
@@ -178,13 +181,13 @@ def Triangle(LB, UB, natoms):
             Upper bounds matrix.
         natoms : int
             Number of atoms in the molecule.
-        
+
     Returns
     -------
         LL : np.array
             Lower triangularized bound matrix
         UL : np.array
-            Upper triangularized bound matrix      
+            Upper triangularized bound matrix
 
     """
     LL = LB
@@ -207,7 +210,7 @@ def Triangle(LB, UB, natoms):
 
 def Metrize(LB, UB, natoms, Full=False, seed=False):
     """Metrization to select random in-range distances. Copied from ref [2], pp. 253-254.
-    Scales O(N^3). 
+    Scales O(N^3).
 
     Parameters
     ----------
@@ -221,11 +224,11 @@ def Metrize(LB, UB, natoms, Full=False, seed=False):
             Flag for full metrization (scales O(N^5)). Default is False.
         seed : bool, optional
             Flag for random number seed. Default is False.
-        
+
     Returns
     -------
         D : np.array
-            Distance matrix.  
+            Distance matrix.
 
     """
     if seed:
@@ -258,7 +261,7 @@ def Metrize(LB, UB, natoms, Full=False, seed=False):
 
 
 def GetCMDists(D, natoms):
-    """Get distances of each atom to center of mass given the distance matrix. 
+    """Get distances of each atom to center of mass given the distance matrix.
     Copied from ref [2], pp. 309.
 
     Parameters
@@ -267,7 +270,7 @@ def GetCMDists(D, natoms):
             Distance matrix.
         natoms : int
             Number of atoms in the molecule.
-        
+
     Returns
     -------
         D0 : np.array
@@ -293,7 +296,7 @@ def GetCMDists(D, natoms):
 
 
 def GetMetricMatrix(D, D0, natoms):
-    """Get metric matrix from distance matrix and CM distances 
+    """Get metric matrix from distance matrix and CM distances
     Copied from ref [2], pp. 306.
 
     Parameters
@@ -304,7 +307,7 @@ def GetMetricMatrix(D, D0, natoms):
             Vector of distances from center of mass.
         natoms : int
             Number of atoms in the molecule.
-        
+
     Returns
     -------
         G : np.array
@@ -320,14 +323,14 @@ def GetMetricMatrix(D, D0, natoms):
 
 def Get3Eigs(G, natoms):
     """Gets 3 largest eigenvalues and corresponding eigenvectors of metric matrix
-        
+
     Parameters
     ----------
         G : np.array
             Metric matrix.
         natoms : int
             Number of atoms in the molecule.
-        
+
     Returns
     -------
         L : np.array
@@ -348,16 +351,16 @@ def Get3Eigs(G, natoms):
 
 
 def DistErr(x, *args):
-    """Computes distance error function for scipy optimization. 
+    """Computes distance error function for scipy optimization.
     Copied from E3 in pp. 311 of ref. [1]
-        
+
     Parameters
     ----------
         x : np.array
             1D array of coordinates to be optimized.
         *args : dict
             Other parameters (refer to scipy.optimize docs)
-        
+
     Returns
     -------
         E : np.array
@@ -381,14 +384,14 @@ def DistErr(x, *args):
 def DistErrGrad(x, *args):
     """Computes gradient of distance error function for scipy optimization.
     Copied from E3 in pp. 311 of ref. [1]
-        
+
     Parameters
     ----------
         x : np.array
             1D array of coordinates to be optimized.
         *args : dict
             Other parameters (refer to scipy.optimize docs)
-        
+
     Returns
     -------
         g : np.array
@@ -406,21 +409,21 @@ def DistErrGrad(x, *args):
             dij = distance(ri, rj)
             uij = UB[i][j]
             lij = LB[i][j]
-            g[3*i] += (4*((dij/uij)**2-1)/(uij**2) - (8/lij**2)*(2*(lij**2 /
-                                                                    (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i]-x[3*j])  # xi
-            g[3*i+1] += (4*((dij/uij)**2-1)/(uij**2) - (8/lij**2)*(2*(lij**2 /
-                                                                      (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i+1]-x[3*j+1])  # yi
-            g[3*i+2] += (4*((dij/uij)**2-1)/(uij**2) - (8/lij**2)*(2*(lij**2 /
-                                                                      (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i+2]-x[3*j+2])  # zi
+            g[3*i] += (4*((dij/uij)**2-1)/(uij**2)
+                       - (8/lij**2)*(2*(lij**2 / (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i]-x[3*j])  # xi
+            g[3*i+1] += (4*((dij/uij)**2-1)/(uij**2)
+                         - (8/lij**2)*(2*(lij**2 / (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i+1]-x[3*j+1])  # yi
+            g[3*i+2] += (4*((dij/uij)**2-1)/(uij**2)
+                         - (8/lij**2)*(2*(lij**2 / (lij**2+dij**2))-1)/((1+(dij/lij)**2)**2))*(x[3*i+2]-x[3*j+2])  # zi
     return g
 
 
 def SaveConf(X, mol, ffclean=True, catoms=[]):
     """Further cleans up with OB FF and saves to a new mol3D object.
-    Note that distance geometry tends to produce puckered aromatic rings because of the 
+    Note that distance geometry tends to produce puckered aromatic rings because of the
     lack of explicit impropers, see Riniker et al. JCIM (2015) 55, 2562-74 for details.
     Hence, a FF optimization (with connection atoms constrained) is recommended to clean up the structure.
-        
+
     Parameters
     ----------
         x : np.array
@@ -431,7 +434,7 @@ def SaveConf(X, mol, ffclean=True, catoms=[]):
             Flag for openbabel forcefield cleanup. Default is True.
         catoms : list, optional
             List of connection atoms used to generate FF constraints if specified. Default is empty.
-        
+
     Returns
     -------
         conf3D : mol3D
@@ -444,14 +447,14 @@ def SaveConf(X, mol, ffclean=True, catoms=[]):
     OBMol = conf3D.OBMol
     for i, atom in enumerate(openbabel.OBMolAtomIter(OBMol)):
         atom.SetVector(X[i, 0], X[i, 1], X[i, 2])
-    
+
     # First stage of cleaning takes place with the metal still present
     if ffclean:
         ff = openbabel.OBForceField.FindForceField('UFF')
         s = ff.Setup(OBMol)
         if not s:
             print('FF setup failed')
-            
+
         for i in range(200):
             ff.SteepestDescent(10)
             ff.ConjugateGradients(10)
@@ -460,9 +463,11 @@ def SaveConf(X, mol, ffclean=True, catoms=[]):
     last_atom_index = OBMol.NumAtoms()  # Delete the dummy metal atom that we added earlier
     metal_atom = OBMol.GetAtom(last_atom_index)
     OBMol.DeleteAtom(metal_atom)
-    
-    # Second stage of cleaning removes the metal, but uses constraints on the bonding atoms to ensure a binding conformer is maintained
-    # This stage is critical for getting planar aromatic ligands like porphyrin and correct. Not really sure why though...
+
+    # Second stage of cleaning removes the metal, but uses constraints on the
+    # bonding atoms to ensure a binding conformer is maintained
+    # This stage is critical for getting planar aromatic ligands like
+    # porphyrin and correct. Not really sure why though...
     if ffclean:
         ff = openbabel.OBForceField.FindForceField('mmff94')
         constr = openbabel.OBFFConstraints()
@@ -471,70 +476,73 @@ def SaveConf(X, mol, ffclean=True, catoms=[]):
         s = ff.Setup(OBMol, constr)
         if not s:
             print('FF setup failed')
-            
+
         for i in range(200):
             ff.SteepestDescent(10)
             ff.ConjugateGradients(10)
         ff.GetCoordinates(OBMol)
-    
+
     conf3D.OBMol = OBMol
     conf3D.convert2mol3D()
     return conf3D
 
 
-def findshape(args, master_ligand):
+def findshape(args, master_ligand) -> Dict:
     """Determines the relative positioning of different ligating atoms
-        
+
     Parameters
     ----------
         args : Namespace
             Namespace argument from inparse.
         master_ligand : mol3D
             mol3D class instance of metal with the ligand.
-        
+
     Returns
     -------
         angles_dict : dict
-            A dictionary of angles (in degrees)between catoms.
+            A dictionary of angles (in degrees) between catoms.
 
     """
     core = loadcoord(args.geometry)
 
     # load ligands and identify the denticity of each
     ligands = []
-    for counter, i in enumerate(args.lig):
-        ligands.append(lig_load(i)[0])
+    for lig in args.lig:
+        ligands.append(lig_load(lig)[0])
+    # TODO: Found this hardcoded index that will surely fail in certain cases
+    # RM 2022/07/15
     number_of_smiles_ligands = 0
-    for counter, lig in enumerate(ligands):
+    for i, lig in enumerate(ligands):
         if lig.ident == 'smi':
-            ligands[counter].denticity = len(
-                args.smicat[number_of_smiles_ligands])
+            ligands[i].denticity = len(args.smicat[number_of_smiles_ligands])
 
+    # Find the binding location of the master_ligand. Start with one since
+    # core[0] corresponds to the metal
     bind = 1
-    for counter, i in enumerate(ligands):
-        if i.name == master_ligand.name:
-            master_denticity = i.denticity
+    for i, lig in enumerate(ligands):
+        if lig.name == master_ligand.name:
+            master_denticity = lig.denticity
             break
         else:
-            bind += 1*int(args.ligocc[counter])*int(i.denticity)
-    binding_locations = (np.array(list(range(master_denticity))))+bind
+            bind += 1*int(args.ligocc[i])*int(lig.denticity)
 
     metal_coords = np.array(core[0])
     ligating_coords = []
-    for i in binding_locations:
-        ligating_coords.append(np.array(core[i]))
+    for i in range(master_denticity):
+        ligating_coords.append(np.array(core[i + bind]))
 
     angles_dict = dict()
     for i in range(len(ligating_coords)):
         for j in range(len(ligating_coords)):
             angles_dict[str(i)+'-'+str(j)] = inverseCosRule(ligating_coords[i],
-                                                            metal_coords, ligating_coords[j])
+                                                            metal_coords,
+                                                            ligating_coords[j])
     return angles_dict
 
 
 def GetConf(mol, args, catoms=[]):
     """Uses distance geometry to get a random conformer.
-        
+
     Parameters
     ----------
         mol : mol3D
@@ -542,8 +550,9 @@ def GetConf(mol, args, catoms=[]):
         args : Namespace
             Namespace argument from inparse.
         catoms : list, optional
-            List of connection atoms used to generate additional constraints if specified (see GetBoundsMatrices()). Default is empty.
-        
+            List of connection atoms used to generate additional constraints if specified (see GetBoundsMatrices()).
+            Default is empty.
+
     Returns
     -------
         Conf3D : mol3D
@@ -582,13 +591,18 @@ def GetConf(mol, args, catoms=[]):
 # for testing
 #
 # n4py
-# molsimplify -core ru -lig 'n1ccccc1CN(Cc2ccccn2)C(c3ccccn3)c4ccccn4' water -ligocc 1 1 -smicat [1,15,22,28,8] -spin 1 -ligloc True -geometry oct -rprompt True -ffoption A
+# molsimplify -core ru -lig 'n1ccccc1CN(Cc2ccccn2)C(c3ccccn3)c4ccccn4' water
+#             -ligocc 1 1 -smicat [1,15,22,28,8] -spin 1 -ligloc True
+#             -geometry oct -rprompt True -ffoption A
 # heptacoordinate water oxidation catalyst
-# molsimplify -core ru -lig 'n1c(C(=O)[O-])cccc1c2cccc(c3cccc(C(=O)[O-])n3)n2' water pyridine -ligocc 1 1 2 -smicat [1,24,23,22] -spin 1 -ligloc True -geometry pbp -ffoption A
+# molsimplify -core ru -lig 'n1c(C(=O)[O-])cccc1c2cccc(c3cccc(C(=O)[O-])n3)n2' water pyridine
+#             -ligocc 1 1 2 -smicat [1,24,23,22] -spin 1 -ligloc True -geometry pbp -ffoption A
 # same water oxidation catalyst in a hexacoordinate binding pattern
-# molsimplify -core ru -lig 'n1c(C(=O)[O-])cccc1c2cccc(c3cccc(C(=O)[O-])n3)n2' water pyridine -ligocc 1 1 2 -smicat [1,24,23] -spin 1 -ligloc True -geometry oct -ffoption A
+# molsimplify -core ru -lig 'n1c(C(=O)[O-])cccc1c2cccc(c3cccc(C(=O)[O-])n3)n2' water pyridine
+#             -ligocc 1 1 2 -smicat [1,24,23] -spin 1 -ligloc True -geometry oct -ffoption A
 # tetrahedral with 2 bidentates
-# molsimplify -core fe -lig 'n1ccccc1c2ccccn2' 'CC(=O)C=C([O-])C' -ligocc 1 1 -smicat [[1,12],[3,6]] -ligloc True -geometry thd -ffoption A -rprompt True
+# molsimplify -core fe -lig 'n1ccccc1c2ccccn2' 'CC(=O)C=C([O-])C' -ligocc 1 1
+#             -smicat [[1,12],[3,6]] -ligloc True -geometry thd -ffoption A -rprompt True
 # mol,emsg = lig_load('c1ccc(c(c1)C=NCCN=Cc2ccccc2[O-])[O-]')
 # mol,emsg = lig_load('N(C)1CCN(C)CCCN(C)CCN(C)CCC1')
 # catoms = [7,10,18,19]

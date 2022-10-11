@@ -13,7 +13,7 @@
 #  @return Complex name
 
 
-def name_complex(core, ligs, ligoc, args):
+def name_complex(core, ligs, ligoc, args) -> str:
     center = core.getAtom(0).symbol()
     name = center + '_'
     if args.oxstate:

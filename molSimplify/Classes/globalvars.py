@@ -203,7 +203,7 @@ heavy_metals_and_metalloids = [
     'Md', 'md', 'MD', 'mendelevium', 'No', 'no', 'NO', 'nobelium',
     'Lr', 'lr', 'LR', 'lawrencium']
 
-### The metals list below contains only TMs. See metalslist function for logic.
+# ## The metals list below contains only TMs. See metalslist function for logic.
 metalslist = [
     'Sc', 'sc', 'SC', 'scandium', 'Ti', 'ti', 'TI', 'titanium',
     'V', 'v', 'vanadium', 'Cr', 'cr', 'CR', 'chromium',
@@ -484,10 +484,10 @@ class globalvars:
         s += 'J.P. Janet, T. Z. H. Gani, A. H. Steeves, E. I. Ioannidis, H. J. Kulik. Ind. Eng. Chem. Res. 2017, 56(17), 4898-4910.\n'
         # About message
         self.about = s
-        ###### GET INFORMATION ######
+        # ##### GET INFORMATION ######
         runfromcmd = False
         try:
-            ### check if running through commandline ###
+            # ## check if running through commandline ###
             if sys.stdin.isatty():
                 # running through command line
                 runfromcmd = True
@@ -495,7 +495,7 @@ class globalvars:
                 runfromcmd = False
         except AttributeError:  # if sys.stdin does not have an isatty method
             runfromcmd = True
-        ### get running os ###
+        # ## get running os ###
         self.linux, self.osx = False, False
         if platform.system().lower() in 'linux':
             self.linux = True
@@ -518,7 +518,7 @@ class globalvars:
         self.chemdbdir = ''
         self.multiwfn = ''
         self.custom_path = False
-        ###### check for ~/.molSimplify ######
+        # ##### check for ~/.molSimplify ######
         if glob.glob(homedir + '/.' + self.PROGRAM):
             with open(homedir + '/.' + self.PROGRAM, 'r') as fin:
                 s = [_f for _f in fin.read().splitlines() if _f]
@@ -707,9 +707,8 @@ class globalvars:
                 Path to custom data ~/.molSimplify file.
         """
         homedir = os.path.expanduser("~")
-        f = open(homedir + '/.' + self.PROGRAM, 'a')
-        f.write('CUSTOM_DATA_PATH=' + str(path) + "\n")
-        f.close()
+        with open(homedir + '/.' + self.PROGRAM, 'a') as f:
+            f.write('CUSTOM_DATA_PATH=' + str(path) + "\n")
 
     def bbcombs_mononuc(self):
         """Get backbone combinations dictionary

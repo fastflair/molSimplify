@@ -1,5 +1,8 @@
 import numpy as np
-from molSimplify.Scripts.distgeom import GetCMDists, CosRule, Metrize
+from argparse import Namespace
+from molSimplify.Classes.mol3D import mol3D
+from molSimplify.Scripts.distgeom import (GetCMDists, CosRule,
+                                          Metrize, findshape)
 
 
 def test_CosRule(atol=1e-6):
@@ -75,3 +78,29 @@ def test_Metrize():
     #                 [62.210877, 43.772774, 0.,        100.],
     #                 [100.,      100.,      100.,      0.]])
     # np.testing.assert_allclose(D, ref)
+
+
+def test_findshape():
+    # First trivial case of monodentate ligands:
+    args = Namespace(geometry='oct', lig=['carbonyl', 'water'],
+                     ligocc=[5, 1])
+
+    angles_dict = findshape(args, mol3D(name='carbonyl'))
+    assert angles_dict == {'0-0': 0.0}
+
+    # More interesting bidentate case:
+    args = Namespace(geometry='oct', lig=['acac', 'water'],
+                     ligocc=[2, 2])
+
+    angles_dict = findshape(args, mol3D(name='acac'))
+    assert angles_dict == {'0-0': 0.0, '0-1': 90.0,
+                           '1-0': 90.0, '1-1': 0.0}
+
+    args = Namespace(geometry='oct', lig=['porphyrine', 'water'],
+                     ligocc=[1, 2])
+
+    angles_dict = findshape(args, mol3D(name='porphyrine'))
+    assert angles_dict == {'0-0': 0.0, '0-1': 90.0, '0-2': 180.0, '0-3': 90.0,
+                           '1-0': 90.0, '1-1': 0.0, '1-2': 90.0, '1-3': 180.0,
+                           '2-0': 180.0, '2-1': 90.0, '2-2': 0.0, '2-3': 90.0,
+                           '3-0': 90.0, '3-1': 180.0, '3-2': 90.0, '3-3': 0.0}

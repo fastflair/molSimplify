@@ -328,8 +328,8 @@ def checkmultilig(ligs):
             # read molecule
             if glob.glob(lig):
                 print('found ligand file')
-                f = open(lig, 'r')
-                s = f.read().splitlines()
+                with open(lig, 'r') as f:
+                    s = f.read().splitlines()
                 for ss in s:
                     ss = ss.replace('\t', ' ')
                     sf = [_f for _f in ss.split(' ') if _f]
@@ -339,7 +339,6 @@ def checkmultilig(ligs):
                         multidx = i
                     else:
                         connatoms.append(False)
-                f.close()
                 if len(s) > 1:
                     mligs.append(s)
                 else:
@@ -416,7 +415,7 @@ def rungen(rundir, args, chspfname, globs, write_files=True):
         if args.lig:
             mligs, catoms, multidx = checkmultilig(args.lig)
         if args.debug:
-            print(('after checking for mulitple ligs, we found  ' +
+            print(('after checking for multiple ligs, we found  ' +
                    str(multidx) + ' ligands'))
     # save initial
     smicat0 = [ss for ss in args.smicat] if args.smicat else False

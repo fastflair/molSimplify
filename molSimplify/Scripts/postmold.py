@@ -50,9 +50,8 @@ def parse(folder, molf):
               'Fe', 'FE', 'Co', 'CO', 'Ni', 'NI', 'Cu', 'CU', 'Zn', 'ZN']
     print(("Parsing "+molf.split('.molden')[0]))
     # get coordinates of metal
-    f = open(molf, 'r')
-    sm = f.read().splitlines()
-    f.close()
+    with open(molf, 'r') as f:
+        sm = f.read().splitlines()
     resd = molf.rsplit('/', 1)[0]
     moln = molf.rsplit('/', 1)[-1]
     moln = moln.split('.molden')[0]
@@ -79,9 +78,8 @@ def parse(folder, molf):
     # INITIALIZE VARIABLES
     natoms = 0
     # read molden file
-    f = open(molf, 'r')
-    s = f.read()
-    f.close()
+    with open(molf, 'r') as f:
+        s = f.read()
     # check if TeraChem
     if 'TeraChem' in s:
         tera = True
@@ -222,9 +220,8 @@ def parse(folder, molf):
     outtxt = header+txt
     rsd = os.path.relpath(resd, folder)
     rsd = rsd.replace('/', '_')
-    f = open(folder+'/MO_files/'+rsd+'-'+moln+'_orbs.txt', 'w')
-    f.write(outtxt)
-    f.close()
+    with open(folder+'/MO_files/'+rsd+'-'+moln+'_orbs.txt', 'w') as f:
+        f.write(outtxt)
 
 # Parse orbital files
 #  @param orbf Orbital file
@@ -233,9 +230,8 @@ def parse(folder, molf):
 
 def parsed(orbf):
     # read results file
-    f = open(orbf, 'r')
-    s = f.read()
-    f.close()
+    with open(orbf, 'r') as f:
+        s = f.read()
     ############################
     ####### PARSE FILE #########
     ############################
@@ -286,9 +282,8 @@ def getresd(dirf):
                     "{0:.3f}".format(rr[2]).ljust(12)+"{0:.3f}".format(rr[3]).ljust(13)+"{0:.3f}".format(rr[4]).ljust(10) +
                     "{0:.3f}".format(rr[5]).ljust(23)+"{0:.3f}".format(rr[6]).ljust(10)+'\n')
     text = sorted(text)
-    f = open(dirf+'/avorbs.txt', 'w')
-    f.write(txt+''.join(text))
-    f.close()
+    with open(dirf+'/avorbs.txt', 'w') as f:
+        f.write(txt+''.join(text))
 
 # Post-process all molden files in subdirectory
 #  @param molf Molden file name

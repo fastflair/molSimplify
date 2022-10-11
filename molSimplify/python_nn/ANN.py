@@ -13,16 +13,17 @@ import csv
 import numpy as np
 from pkg_resources import resource_filename, Requirement
 from molSimplify.utils.decorators import deprecated
+from typing import List
 
 
-def simple_network_builder(layers, partial_path):
+def simple_network_builder(layers: List[int], partial_path: str):
     """Numpy based implementation of a simple neural network to replace the
     now deprecated pybrain variant."""
 
     class ThreeLayerNetwork():
         """Fixed architecture neural network"""
 
-        def __init__(self, layers, partial_path):
+        def __init__(self, layers: List[int], partial_path: str):
             self.w1 = np.array(
                 csv_loader(partial_path + '_w1.csv')).reshape(-1, layers[0])
             self.w2 = np.array(
@@ -33,7 +34,7 @@ def simple_network_builder(layers, partial_path):
             self.b2 = np.array(csv_loader(partial_path + '_b2.csv'))
             self.b3 = np.array(csv_loader(partial_path + '_b3.csv'))
 
-        def activate(self, input):
+        def activate(self, input: np.ndarray) -> np.ndarray:
             layer1 = np.tanh(self.w1 @ input + self.b1)
             layer2 = np.tanh(self.w2 @ layer1 + self.b2)
             output = self.w3 @ layer2 + self.b3
@@ -43,7 +44,7 @@ def simple_network_builder(layers, partial_path):
 
 
 @deprecated
-def simple_network_builder_pybrain(layers, partial_path):
+def simple_network_builder_pybrain(layers: List[int], partial_path: str):
     from pybrain.structure import (FeedForwardNetwork, TanhLayer, LinearLayer,
                                    BiasUnit, FullConnection)
     n = FeedForwardNetwork()
@@ -88,7 +89,7 @@ def simple_network_builder_pybrain(layers, partial_path):
     return n
 
 
-def csv_loader(path):
+def csv_loader(path: str) -> List[float]:
     # print('in csv loader')
     path_to_file = resource_filename(Requirement.parse("molSimplify"),
                                      "molSimplify/python_nn/" + path)

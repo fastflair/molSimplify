@@ -4,39 +4,41 @@ import sys
 import os
 import pandas as pd
 
-### Below is RDKit dependency that this code uses
+# ## Below is RDKit dependency that this code uses
 # from rdkit import Chem
 # from rdkit.Chem.rdMolDescriptors import CalcMolFormula
-###
+# ##
 
 '''
 functional groups considered
 '''
-funcs = {'cccc':'phenyl',
-         'C':'methyl',
-         'F':'fluoro',
-         'C(F)(F)F':'tetrafluoro',
-         'Br':'bromo',
-         'Cl':'chloro',
-         'I':'iodo',
-         'C#N':'cyano',
-         'N':'amino',
-         'O':'hydroxy',
-         'S':'thiol'}
+funcs = {'cccc': 'phenyl',
+         'C': 'methyl',
+         'F': 'fluoro',
+         'C(F)(F)F': 'tetrafluoro',
+         'Br': 'bromo',
+         'Cl': 'chloro',
+         'I': 'iodo',
+         'C#N': 'cyano',
+         'N': 'amino',
+         'O': 'hydroxy',
+         'S': 'thiol'}
 
 
 '''
 takes in a batch of synthesized macrocycles
 '''
 input_file = sys.argv[1]
+
+
 def read_synthesized_macrocycles(input_file):
-    with open(sys.argv[1],'r') as f:
+    with open(sys.argv[1], 'r') as f:
         data = json.load(f)
-        print('----',len(data))
+        print('----', len(data))
         counter = 0
         temp_list_first = []
         for i, row in enumerate(data):
-            #### Skip over all contracted rings.
+            # ### Skip over all contracted rings.
             # print(row)
             # temp = row.replace('null','False')
             # temp_dict = ast.literal_eval(str(temp).strip('\n'))
@@ -47,10 +49,11 @@ def read_synthesized_macrocycles(input_file):
             temp_list_first.append(temp_dict)
     return temp_list_first
 
+
 temp_list_first = read_synthesized_macrocycles(input_file)
 
 '''
-In this section, we disable functionalizations on 
+In this section, we disable functionalizations on
 certain fragments after the fact. Here we dont allow
 functionalizations on any pyrans.
 '''
@@ -70,7 +73,8 @@ for val in temp_list_first:
 
 def count_atoms(smiles):
     return len([val for val in smiles if val.isalpha()])
-        
+
+
 def split_at_idx(smiles, idx):
     alphabet_indices = [i for i, val in enumerate(smiles) if val.isalpha()]
     forbidden_end = ['=', '/', '\\', ')']
@@ -84,14 +88,16 @@ def split_at_idx(smiles, idx):
         right = left[-1]+right
         left = left[:-1]
     return left, right
+
+
 '''
 to functionalize, you need to start at the first one and move inwards in the order
 of 1 --> 2 --> 3 --> 4
 
 only certain rings are compatible with the phthalocyanine style phenyl functionalization.
 '''
-phthalo_compat = ['imidazole2ylidine','furan','pyrrole','phosphole','thiophene']
-double_func = [] # We populate this list if we want to doubly functionalize a given carbon on a fragment.
+phthalo_compat = ['imidazole2ylidine', 'furan', 'pyrrole', 'phosphole', 'thiophene']
+double_func = []  # We populate this list if we want to doubly functionalize a given carbon on a fragment.
 functionalized_ligands = []
 rounds = 0
 for lignum, ligand in enumerate(temp_list):
@@ -99,14 +105,14 @@ for lignum, ligand in enumerate(temp_list):
     for func in list(funcs.keys()):
         temp_ligand = ligand.copy()
         rounds += 1
-        smiles = temp_ligand['macrocycle_smiles'] 
+        smiles = temp_ligand['macrocycle_smiles']
         counter = 5
         func_counter = 0
         if func == 'cccc':
             if temp_ligand['frag1'] in phthalo_compat:
                 inds1 = temp_ligand['frag1_func']
                 inds2 = temp_ligand['frag2_func']
-                left, right = split_at_idx(smiles,inds1[0])
+                left, right = split_at_idx(smiles, inds1[0])
                 if '=' in right:
                     additional = 'C=CC=C'
                 else:
@@ -114,7 +120,7 @@ for lignum, ligand in enumerate(temp_list):
                 smiles = left+str(counter)+right+additional+str(counter)
                 counter += 1
                 func_counter += 1
-                left2, right2 = split_at_idx(smiles,inds2[0])
+                left2, right2 = split_at_idx(smiles, inds2[0])
                 new_right2 = right2.split(')', 1)
                 if '=' in new_right2[0]:
                     additional = 'C=CC=C'
@@ -127,8 +133,8 @@ for lignum, ligand in enumerate(temp_list):
             if temp_ligand['frag3'] in phthalo_compat:
                 inds3 = temp_ligand['frag3_func']
                 inds4 = temp_ligand['frag4_func']
-                left, right = split_at_idx(smiles,inds3[0])
-                new_right1 = right.split(')',1)
+                left, right = split_at_idx(smiles, inds3[0])
+                new_right1 = right.split(')', 1)
                 if '=' in new_right1[0]:
                     additional = 'C=CC=C'
                 else:
@@ -136,7 +142,7 @@ for lignum, ligand in enumerate(temp_list):
                 smiles = left+str(counter)+new_right1[0]+additional+str(counter)+')'+new_right1[1]
                 counter += 1
                 func_counter += 1
-                left2, right2 = split_at_idx(smiles,inds4[0])
+                left2, right2 = split_at_idx(smiles, inds4[0])
                 new_right2 = right2.split(')', 1)
                 if '=' in new_right2[0]:
                     additional = 'C=CC=C'
@@ -162,18 +168,18 @@ for lignum, ligand in enumerate(temp_list):
 
             func_inds1 = []
             func_inds2 = []
-            if isinstance(inds1, list) and len(inds1)>0:
+            if isinstance(inds1, list) and len(inds1) > 0:
                 func_inds1 += inds1
-            if isinstance(inds2, list) and len(inds2)>0:
+            if isinstance(inds2, list) and len(inds2) > 0:
                 func_inds1 += inds2
-            if isinstance(inds3, list) and len(inds3)>0:
+            if isinstance(inds3, list) and len(inds3) > 0:
                 func_inds2 += inds3
-            if isinstance(inds4, list) and len(inds4)>0:
+            if isinstance(inds4, list) and len(inds4) > 0:
                 func_inds2 += inds4
             sorted_func_inds1 = sorted(func_inds1)
             sorted_func_inds2 = sorted(func_inds2)
             for ind in reversed(sorted_func_inds1):
-                left, right = split_at_idx(smiles,ind)
+                left, right = split_at_idx(smiles, ind)
                 if frag1_double_func:
                     smiles = left+'('+func+')'+'('+func+')'+right
                     func_counter += 2
@@ -182,7 +188,7 @@ for lignum, ligand in enumerate(temp_list):
                     func_counter += 1
                 used_func_groups.add(funcs[func])
             for ind in reversed(sorted_func_inds2):
-                left, right = split_at_idx(smiles,ind)
+                left, right = split_at_idx(smiles, ind)
                 if frag2_double_func:
                     smiles = left+'('+func+')'+'('+func+')'+right
                     func_counter += 2
@@ -192,7 +198,7 @@ for lignum, ligand in enumerate(temp_list):
                 used_func_groups.add(funcs[func])
         if func_counter > 0:
             m = Chem.MolFromSmiles(smiles)
-            if m != None:
+            if m is not None:
                 func_canonical = Chem.MolToSmiles(m, canonical=True, isomericSmiles=False)
                 temp_ligand['frag_func_smiles'] = smiles
                 temp_ligand['frag_func_canonical'] = func_canonical
@@ -210,25 +216,25 @@ for lignum, ligand in enumerate(temp_list):
                 temp_ligand['frag_func_count'] = func_counter
                 if not os.path.exists('failed_frag_func.csv'):
                     df = pd.DataFrame([temp_ligand])
-                    df.to_csv('failed_frag_func.csv',index=False)
+                    df.to_csv('failed_frag_func.csv', index=False)
                 else:
                     df = pd.read_csv('failed_frag_func.csv')
                     new_entry = pd.DataFrame([temp_ligand])
-                    new_df = pd.concat([df,new_entry],axis=0)
-                    new_df.to_csv('failed_frag_func.csv',index=False)
-            print('counter',lignum, rounds)
+                    new_df = pd.concat([df, new_entry], axis=0)
+                    new_df.to_csv('failed_frag_func.csv', index=False)
+            print('counter', lignum, rounds)
     temp_dict = {}
-    temp_dict['name'] = temp_ligand['name'] 
+    temp_dict['name'] = temp_ligand['name']
     temp_dict['charge'] = temp_ligand['charge']
     temp_dict['func_groups'] = list(used_func_groups)
     if not os.path.exists('successful_functionalizations.csv'):
         df = pd.DataFrame([temp_dict])
-        df.to_csv('successful_functionalizations.csv',index=False)
+        df.to_csv('successful_functionalizations.csv', index=False)
     else:
         df = pd.read_csv('successful_functionalizations.csv')
         new_entry = pd.DataFrame([temp_dict])
-        new_df = pd.concat([df,new_entry],axis=0)
-        new_df.to_csv('successful_functionalizations.csv',index=False)
+        new_df = pd.concat([df, new_entry], axis=0)
+        new_df.to_csv('successful_functionalizations.csv', index=False)
 
 with open(os.getcwd()+'/frag_functionalized_synthesized_ligands.json', 'w') as fout:
     json.dump(functionalized_ligands, fout)

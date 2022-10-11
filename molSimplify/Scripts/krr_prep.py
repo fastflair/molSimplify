@@ -53,7 +53,6 @@ def feature_prep(mol, idx):
     satno_list = []
     ref_list = []
     fd_list = []
-    idx_list = [0] * 6
     exit_signal = True
     # getting bond-order matrix
     mol.convert2OBMol()
@@ -229,9 +228,9 @@ def normalize(data, mean, std):
 
 def krr_model_training(csvf, colnum_label, colnum_desc, alpha=1, gamma=1, threshold=0.01):
     # read in desc and label
-    f = open(csvf, 'r')
-    fcsv = csv.reader(f)
-    headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
+    with open(csvf, 'r') as f:
+        fcsv = csv.reader(f)
+        headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
     X = []
     y = []
     lines = [line for line in fcsv]
@@ -259,8 +258,6 @@ def krr_model_training(csvf, colnum_label, colnum_desc, alpha=1, gamma=1, thresh
     stat_names = ['mean_X_dict', 'std_X_dict', 'mean_y', 'std_y']
     stats = [mean_X_dict, std_X_dict, mean_y, std_y]
     stat_dict = dict(list(zip(stat_names, stats)))
-    X_norm = normalize(X, mean_X, std_X)
-    y_norm = normalize(y, mean_y, std_y)
     # split to train and test
     X_norm_train, X_norm_test, y_norm_train, y_norm_test = train_test_split(
         X_norm, y_norm, test_size=0.2, random_state=0)
@@ -360,9 +357,9 @@ def krr_model_training(csvf, colnum_label, colnum_desc, alpha=1, gamma=1, thresh
 
 def krr_model_training_loo(csvf, colnum_label, colnum_desc, feature_names=False, alpha=1, gamma=1, threshold=0.01):
     # read in desc and label
-    f = open(csvf, 'r')
-    fcsv = csv.reader(f)
-    headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
+    with open(csvf, 'r') as f:
+        fcsv = csv.reader(f)
+        headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
     X = []
     y = []
     lines = [line for line in fcsv]
@@ -516,9 +513,9 @@ def krr_model_training_loo(csvf, colnum_label, colnum_desc, feature_names=False,
 
 def gbr_model_training(csvf, colnum_i_label, colnum_j_label, colnum_desc):
     # read in desc and label
-    f = open(csvf, 'r')
-    fcsv = csv.reader(f)
-    headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
+    with open(csvf, 'r') as f:
+        fcsv = csv.reader(f)
+        headers = np.array(next(f, None).rstrip('\r\n').split(','))[colnum_desc:]
     X = []
     y = []
     lines = [line for line in fcsv]
@@ -699,22 +696,22 @@ def krr_model_predict(core3D, spin, mligcatom):
             "molSimplify"), "molSimplify/python_krr")
     # load model
     f_model = fpath + '/hat_krr_model.pkl'
-    f = open(f_model, 'rb')
-    regr = pickle.load(f)
+    with open(f_model, 'rb') as f:
+        regr = pickle.load(f)
     Xs_train = regr.X_fit_
     # load stats
     # y stats
     f_stats = fpath + '/hat_y_mean_std.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    with open(f_stats, 'r') as f:
+        fcsv = csv.reader(f)
     for i, line in enumerate(fcsv):
         if i == 1:
             mean_y = float(line[0])
             std_y = float(line[1])
     # x stats
     f_stats = fpath + '/hat_X_mean_std.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    with open(f_stats, 'r') as f:
+        fcsv = csv.reader(f)
     for i, line in enumerate(fcsv):
         if i == 0:
             feature_names = line
@@ -726,29 +723,29 @@ def krr_model_predict(core3D, spin, mligcatom):
     std_X_dict = dict(list(zip(feature_names, std_X)))
     # load feature names
     f_stats = fpath + '/hat_feature_names.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    with open(f_stats, 'r') as f:
+        fcsv = csv.reader(f)
     for i, line in enumerate(fcsv):
         keys = line
     # rOH
     # load model2
     f_model = fpath + '/hat2_krr_model.pkl'
-    f = open(f_model, 'rb')
-    regr2 = pickle.load(f)
+    with open(f_model, 'rb') as f:
+        regr2 = pickle.load(f)
     X2s_train = regr2.X_fit_
     # load stats
     # y2 stats
     f_stats = fpath + '/hat2_y_mean_std.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    with open(f_stats, 'r') as f:
+        fcsv = csv.reader(f)
     for i, line in enumerate(fcsv):
         if i == 1:
             mean_y2 = float(line[0])
             std_y2 = float(line[1])
     # x2 stats
-    f_stats = fpath + '/hat2_X_mean_std.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    # f_stats = fpath + '/hat2_X_mean_std.csv'
+    # with open(f_stats, 'r') as f:
+    #     fcsv = csv.reader(f)
     # for i, line in enumerate(fcsv):
     #     if i == 0:
     #         feature2_names = line
@@ -760,22 +757,22 @@ def krr_model_predict(core3D, spin, mligcatom):
     std_X2_dict = dict(list(zip(feature_names, std_X)))
     # load feature2 names
     f_stats = fpath + '/hat2_feature_names.csv'
-    f = open(f_stats, 'r')
-    fcsv = csv.reader(f)
+    with open(f_stats, 'r') as f:
+        fcsv = csv.reader(f)
     for i, line in enumerate(fcsv):
         keys2 = line
     # # get train data
     # Xs_train_sel = []
     # f_X_train = '/Users/tzuhsiungyang/Dropbox (MIT)/Work at the Kulik group/ts_build/Data/xyzf_optts/selected_xyzfs/hat_krr_X_train.csv'
-    # f = open(f_X_train, 'r')
-    # fcsv = csv.reader(f)
+    # with open(f_X_train, 'r') as f:
+    #     fcsv = csv.reader(f)
     # for line in fcsv:
     #     Xs_train.append([float(ele) for ele in line])
     # # get kernel space coefs
     # coefs = []
     # f_coef = '/Users/tzuhsiungyang/Dropbox (MIT)/Work at the Kulik group/ts_build/Data/xyzf_optts/selected_xyzfs/hat_krr_dual_coef.csv'
-    # f = open(f_coef, 'r')
-    # fcsv = csv.reader(f)
+    # with open(f_coef, 'r') as f:
+    #     fcsv = csv.reader(f)
     # for line in fcsv:
     #     coefs = [float(ele) for ele in line]
     # get features
@@ -922,13 +919,13 @@ def invoke_KRR_from_mol3d_dQ(mol, charge):
             "molSimplify"), "molSimplify/python_krr/X_norm_train_TS.csv")
         y_norm_train_csv = resource_filename(Requirement.parse(
             "molSimplify"), "molSimplify/python_krr/y_norm_train_TS.csv")
-    f = open(X_norm_train_csv, 'r')
-    for line in csv.reader(f):
-        X_norm_train.append([float(i) for i in line])
+    with open(X_norm_train_csv, 'r') as f:
+        for line in csv.reader(f):
+            X_norm_train.append([float(i) for i in line])
     X_norm_train = np.array(X_norm_train)
-    f = open(y_norm_train_csv, 'r')
-    for line in csv.reader(f):
-        y_norm_train.append([float(i) for i in line])
+    with open(y_norm_train_csv, 'r') as f:
+        for line in csv.reader(f):
+            y_norm_train.append([float(i) for i in line])
     y_norm_train = np.array(y_norm_train)
     # X_norm_train = pd.read_csv(X_norm_train_csv,header=None)
     # y_norm_train = pd.read_csv(y_norm_train_csv,header=None)

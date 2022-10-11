@@ -2,7 +2,6 @@ from molSimplify.Classes.ligand import ligand_breakdown, ligand_assign
 from molSimplify.Informatics.graph_analyze import (get_lig_EN,
                                                    get_truncated_kier,
                                                    kier)
-from molSimplify.Classes.globalvars import globalvars
 import numpy as np
 
 
@@ -179,7 +178,7 @@ def generate_all_ligand_misc_dimers(mol, loud, custom_ligand_dict=False):
                 result_ax_ki += kier(ax_ligand_list[i].mol)
                 result_ax_tki += get_truncated_kier(
                     ax_ligand_list[i].mol, ax_con_int_list[i])
-                result_ax_charge += ax_ligand_list[i].mol.OBMol.GetTotalCharge()                
+                result_ax_charge += ax_ligand_list[i].mol.OBMol.GetTotalCharge()
         # average axial results
         result_ax_dent = np.divide(result_ax_dent, n_ax)
         result_ax_maxdelen = np.divide(result_ax_maxdelen, n_ax)
@@ -197,19 +196,3 @@ def generate_all_ligand_misc_dimers(mol, loud, custom_ligand_dict=False):
     results_dictionary = {'colnames': colnames, 'result_ax1': result_ax1,
                           'result_ax2': result_ax2, 'result_ax3': result_ax3}
     return results_dictionary
-
-
-def get_lig_EN(mol, connection_atoms):
-    # calculate the maximum abs electronegativity
-    # difference between connection atom an all
-    # neighbors
-    max_EN = 0
-    globs = globalvars()
-    for atoms in connection_atoms:
-        this_atoms_neighbors = mol.getBondedAtomsSmart(atoms)
-        for bound_atoms in this_atoms_neighbors:
-            this_EN = float(globs.endict()[mol.getAtom(atoms).symbol(
-            )]) - float(globs.endict()[mol.getAtom(bound_atoms).symbol()])
-            if (abs(this_EN) >= max_EN):
-                max_EN = this_EN
-    return max_EN

@@ -27,7 +27,7 @@ class fragment:
                      ring_closure_ind, smiles_tuple)
                 new_options.append(new_smiles_tuple)
             self.options = new_options
-        if ((start_macrocycle == True)):
+        if ((start_macrocycle is True)):
             self.start_macrocycle = 9
             new_options = []
             for option in self.options:
@@ -62,12 +62,12 @@ class fragment:
                     test_fragment = left + center + \
                         '(' + bridge_val[0] + left2 + center2 + right2 + ')' + right
                     if ('=' in bridge_val[0]):
-                        if (not ((bridge_val[0][0] == '=') or ((len(right)>0) and (right[0] == '=')) or (center[-2] == '='))):
+                        if (not ((bridge_val[0][0] == '=') or ((len(right) > 0) and (right[0] == '=')) or (center[-2] == '='))):
                             continue
                     # ignore the open ring closure for validity
                     test_fragment = test_fragment.replace('9', '')
                     m = Chem.MolFromSmiles(test_fragment)
-                    if m != None:
+                    if m is not None:
                         acceptable_bridges.append(bridge_val)
                         acceptable_fragments.append(fragment_val)
                         acceptable_second_fragments.append(second_fragment_val)
@@ -236,17 +236,16 @@ class bridge:
         if self.bonding == (1, 1):
             return [(self.name, (self.func,))]
         elif (self.bonding == (2, 1)) or (self.bonding == (1, 2)):
-            return [(self.name + '=',(self.func,)), ('=' + self.name, (self.func,))]
+            return [(self.name + '=', (self.func,)), ('=' + self.name, (self.func,))]
 
     def return_name(self):
-        if (self.name.lower() in ['x','']):
+        if (self.name.lower() in ['x', '']):
             return 'none'
         else:
             if self.bonding == (2, 1) or self.bonding == (1, 2):
                 return self.name + '='
             else:
                 return self.name
-
 
 
 class tetradentate:
@@ -265,9 +264,9 @@ class tetradentate:
         self.bridge1 = bridge1
         self.bridge2 = bridge2
         self.bridge3 = bridge3
-        self.name = (fragment1.name+'_'+bridge1.return_name()+'_'+
-                     fragment2.name+'_'+bridge3.return_name()+'_'+
-                     fragment3.name+'_'+bridge2.return_name()+'_'+
+        self.name = (fragment1.name+'_'+bridge1.return_name()+'_' +
+                     fragment2.name+'_'+bridge3.return_name()+'_' +
+                     fragment3.name+'_'+bridge2.return_name()+'_' +
                      fragment4.name+'_'+bridge3.return_name())
 
     def cyclic_equiv(self, u, v):
@@ -369,13 +368,13 @@ class tetradentate:
         true if SP3 hybridized carbon is found.
         '''
         if ('C' in left) and (('=' in left) or ('=' in right)):
-            if len(bridge)>0:
-                if (bridge[-1] == '=') or (left[1] == '=') or (len(right)>1 and right[-2]=='='):
+            if len(bridge) > 0:
+                if (bridge[-1] == '=') or (left[1] == '=') or (len(right) > 1 and right[-2]=='='):
                     returnval = False
                 else:
                     returnval = True
             else:
-                if (prev_center[-1] == '=') or (left[1] == '=') or (len(right)>1 and right[-2]=='='):
+                if (prev_center[-1] == '=') or (left[1] == '=') or (len(right) > 1 and right[-2] == '='):
                     returnval = False
                 else:
                     returnval = True
@@ -386,21 +385,21 @@ class tetradentate:
 
     def non_planar(self, left, center, right, frag):
         digits = [val for val in right if val.isdigit()]
-        if (len(frag[0][0])>0 and len(right)>0) and ((frag[0][0][0] == '=') and not ((left[0] == '=') or (right[0] == '='))):
+        if (len(frag[0][0]) > 0 and len(right) > 0) and ((frag[0][0][0] == '=') and not ((left[0] == '=') or (right[0] == '='))):
             returnval = True
-        elif (len(frag[0][0]) == 0) and len(digits)>0: #case of zero connection, connection atom must be doubly bonded for planarity
-            if not '=' in right[0]:
+        elif (len(frag[0][0]) == 0) and len(digits) > 0:  # case of zero connection, connection atom must be doubly bonded for planarity
+            if '=' not in right[0]:
                 returnval = True
             else:
                 returnval = False
         else:
-            print('INHEA',frag)
-            if frag[1][0].count('=')>0:
+            print('INHEA', frag)
+            if frag[1][0].count('=') > 0:
                 # In this case, we have a planar monodentate fragment. Split the
                 # ligand into parts and analyze
-                print(frag[1][0],frag[2][0])
+                print(frag[1][0], frag[2][0])
             else:
-                returnval =  False
+                returnval = False
         return returnval
 
     def get_charge(self, smiles):
@@ -408,7 +407,7 @@ class tetradentate:
         neg = -1*smiles.count('-')
         return neg+pos
 
-    def get_atoms(self,smiles):
+    def get_atoms(self, smiles):
         return [val for val in smiles if val.isalpha()]
 
     def get_formula(self, smiles):
@@ -419,7 +418,6 @@ class tetradentate:
             formula_list.append(atom+str(atoms.count(atom)))
         formula = "".join(formula_list)
         return formula
-
 
     def count_atoms(self, smiles):
         return len([val for val in smiles if val.isalpha()])
@@ -445,20 +443,17 @@ class tetradentate:
                 for f3, frag3 in enumerate(frag3_compatible):
                     for f4, frag4 in enumerate(frag4_compatible):
                         check_for_rotation = [
-                            frag1[1][0], frag1[0][0], frag2[1][0], frag2[0][0], frag3[1][0], frag3[0][0], frag4[1][0], frag4[0][0]]
+                            frag1[1][0], frag1[0][0], frag2[1][0], frag2[0][0],
+                            frag3[1][0], frag3[0][0], frag4[1][0], frag4[0][0]]
                         if any([self.cyclic_equiv(check_for_rotation, val) for val in checked]):
                             continue
                         else:
                             checked.append(check_for_rotation)
                             counta += 1
-                        left1, center1, right1 = self.split_smiles_at_lc_adjacent(frag1[
-                                                                                  1])
-                        left2, center2, right2 = self.split_smiles_at_lc_adjacent(frag2[
-                                                                                  1])
-                        left3, center3, right3 = self.split_smiles_at_lc_adjacent(frag3[
-                                                                                  1])
-                        left4, center4, right4 = self.split_smiles_at_lc_adjacent(frag4[
-                                                                                  1])
+                        left1, center1, right1 = self.split_smiles_at_lc_adjacent(frag1[1])
+                        left2, center2, right2 = self.split_smiles_at_lc_adjacent(frag2[1])
+                        left3, center3, right3 = self.split_smiles_at_lc_adjacent(frag3[1])
+                        left4, center4, right4 = self.split_smiles_at_lc_adjacent(frag4[1])
 
                         if len(frag4[0][0]) == 0:
                             # This has to be a separate case because of the ring closure. We don't need parentheses in this case.
@@ -482,56 +477,64 @@ class tetradentate:
                         if self.sp3_hybridization_checker(left1, center4, right1, frag4[0][0]):
                             continue
                         m = Chem.MolFromSmiles(full_macrocycle)
-                        if m != None:
+                        if m is not None:
                             test = Chem.MolToSmiles(m, canonical=True, isomericSmiles=False)
                             charge = self.get_charge(full_macrocycle)
                             if test in checked_canonical:
                                 continue
                             else:
-                                print(self.fragment1.name,self.fragment3.name,self.bridge1.return_name(),self.bridge2.return_name(),self.bridge3.return_name())
+                                print(self.fragment1.name, self.fragment3.name,
+                                      self.bridge1.return_name(), self.bridge2.return_name(),
+                                      self.bridge3.return_name())
                                 func_1, func_2, func_3, func_4 = False, False, False, False
                                 bridge1_func, bridge2_func, bridge3_func = False, False, False
                                 coord_2 = (frag1[1][1] +
-                                          self.count_atoms(center1) +
-                                          self.count_atoms(frag1[0][0]) +
-                                          self.count_atoms(left1))
+                                           self.count_atoms(center1) +
+                                           self.count_atoms(frag1[0][0]) +
+                                           self.count_atoms(left1))
                                 coord_3 = (coord_2 + self.count_atoms(center2) +
-                                          self.count_atoms(frag2[0][0]) +
-                                          self.count_atoms(left3))
+                                           self.count_atoms(frag2[0][0]) +
+                                           self.count_atoms(left3))
                                 coord_4 = (coord_3 + self.count_atoms(center3) +
-                                          self.count_atoms(frag3[0][0]) +
-                                          self.count_atoms(left4))
-                                if len(frag1[1][2]) > 0: #frag 1 has functionalizable positions
-                                    func_1 = [val +self.count_atoms(frag1[0][0] + left2 + center2 +
-                                                   '(' + frag2[0][0] + left3 + center3 +
-                                                   '(' + frag3[0][0] + left4 + center4 + frag4[0][0] + str(9) +
-                                                   right4 + ')' + right3 + ')' + right2) for val in frag1[1][2]]
+                                           self.count_atoms(frag3[0][0]) +
+                                           self.count_atoms(left4))
+                                if len(frag1[1][2]) > 0:  # frag 1 has functionalizable positions
+                                    func_1 = [val + self.count_atoms(frag1[0][0] + left2 + center2 +
+                                                                     '(' + frag2[0][0] + left3 + center3 +
+                                                                     '(' + frag3[0][0] + left4 + center4 +
+                                                                     frag4[0][0] + str(9) + right4 + ')' +
+                                                                     right3 + ')' + right2)
+                                              for val in frag1[1][2]]
                                 if len(frag2[1][2]) > 0:
-                                    func_2 = [val +self.count_atoms(frag1[0][0] + left2 + center2 +
-                                                    frag2[0][0] + left3 + center3 +
-                                                   '(' + frag3[0][0] + left4 + center4 + frag4[0][0] + str(9) +
-                                                   right4 + ')' + right3) for val in frag2[1][2]]
+                                    func_2 = [val + self.count_atoms(frag1[0][0] + left2 + center2 +
+                                                                     frag2[0][0] + left3 + center3 +
+                                                                     '(' + frag3[0][0] + left4 + center4 +
+                                                                     frag4[0][0] + str(9) +
+                                                                     right4 + ')' + right3)
+                                              for val in frag2[1][2]]
                                 if len(frag3[1][2]) > 0:
-                                    func_3 = [val +self.count_atoms(frag1[0][0] + left2 + center2 +
-                                                    frag2[0][0] + left3 + center3 +
-                                                    frag3[0][0] + left4 + center4 + frag4[0][0] + str(9) +
-                                                    right4) for val in frag3[1][2]]
+                                    func_3 = [val + self.count_atoms(frag1[0][0] + left2 + center2 +
+                                                                     frag2[0][0] + left3 + center3 +
+                                                                     frag3[0][0] + left4 + center4 +
+                                                                     frag4[0][0] + str(9) + right4)
+                                              for val in frag3[1][2]]
                                 if len(frag4[1][2]) > 0:
-                                    func_4 = [val +self.count_atoms(frag1[0][0] + left2 + center2 +
-                                                    frag2[0][0] + left3 + center3 +
-                                                    frag3[0][0] + left4 + center4 + frag4[0][0] + str(9))
-                                                for val in frag4[1][2]]
+                                    func_4 = [val + self.count_atoms(frag1[0][0] + left2 + center2 +
+                                                                     frag2[0][0] + left3 + center3 +
+                                                                     frag3[0][0] + left4 + center4 +
+                                                                     frag4[0][0] + str(9))
+                                              for val in frag4[1][2]]
 
-                                if len(frag1[0][1]) > 0: #frag 1 has functionalizable positions
+                                if len(frag1[0][1]) > 0:  # frag 1 has functionalizable positions
                                     bridge1_func = [self.count_atoms(left1 + center1) for _ in frag1[0][1]]
                                 if len(frag3[0][1]) > 0:
                                     bridge2_func = [self.count_atoms(left1 + center1 + '(' + frag1[0][0] + left2 + center2 +
-                                               '(' + frag2[0][0] + left3 + center3) for _ in frag3[0][1]]
+                                                    '(' + frag2[0][0] + left3 + center3) for _ in frag3[0][1]]
 
                                 if len(frag2[0][1]) > 0:
-                                    ### bridge 3 is symmetric
+                                    # ## bridge 3 is symmetric
                                     bridge3_func_1 = [self.count_atoms(left1 + center1 + '(' + frag1[0][0] + left2 + center2)
-                                                     for _ in frag2[0][1]]
+                                                      for _ in frag2[0][1]]
                                     bridge3_func_2 = [self.count_atoms(left1 + center1 + '(' + frag1[0][0] + left2 + center2 +
                                                       '(' + frag2[0][0] + left3 + center3 +
                                                       '(' + frag3[0][0] + left4 + center4)for _ in frag2[0][1]]
@@ -539,41 +542,41 @@ class tetradentate:
 
                                 # At the end here we are adding back ones because smicat is 1 indexed
                                 # instead of 0
-                                coord_atoms_zero_index = [frag1[1][1],
-                                               coord_2, coord_3, coord_4]
-                                coord_atoms_smicat = [frag1[1][1] + 1,
-                                               coord_2 + 1, coord_3 + 1, coord_4 + 1]
+                                coord_atoms_zero_index = [
+                                    frag1[1][1], coord_2, coord_3, coord_4]
+                                coord_atoms_smicat = [
+                                    frag1[1][1] + 1, coord_2 + 1, coord_3 + 1, coord_4 + 1]
                                 coord_elements = [self.get_atoms(frag1[1][0])[frag1[1][1]].strip('([/-+])'),
                                                   self.get_atoms(frag2[1][0])[frag2[1][1]].strip('([/-+])'),
                                                   self.get_atoms(frag3[1][0])[frag3[1][1]].strip('([/-+])'),
                                                   self.get_atoms(frag4[1][0])[frag4[1][1]].strip('([/-+])')]
-                                temp_dict = {'name':self.name,
-                                             'frag1':self.fragment1.name,
-                                             'frag2':self.fragment2.name,
-                                             'frag3':self.fragment3.name,
-                                             'frag4':self.fragment4.name,
-                                             'bridge1':self.bridge1.return_name(),
-                                             'bridge2':self.bridge2.return_name(),
-                                             'bridge3':self.bridge3.return_name(),
-                                             'frag1_smiles':frag1[1][0],
-                                             'frag2_smiles':frag2[1][0],
-                                             'frag3_smiles':frag3[1][0],
-                                             'frag4_smiles':frag4[1][0],
-                                             'frag1_func':func_1,
-                                             'frag2_func':func_2,
-                                             'frag3_func':func_3,
-                                             'frag4_func':func_4,
-                                             'bridge1_func':bridge1_func,
-                                             'bridge2_func':bridge2_func,
-                                             'bridge3_func':bridge3_func,
-                                             'macrocycle_smiles':full_macrocycle,
-                                             'coord_atoms_zero_index':coord_atoms_zero_index,
-                                             'coord_atoms_smicat':coord_atoms_smicat,
-                                             'coord_elements':coord_elements,
-                                             'formula':CalcMolFormula(m),
-                                             'charge':charge,
+                                temp_dict = {'name': self.name,
+                                             'frag1': self.fragment1.name,
+                                             'frag2': self.fragment2.name,
+                                             'frag3': self.fragment3.name,
+                                             'frag4': self.fragment4.name,
+                                             'bridge1': self.bridge1.return_name(),
+                                             'bridge2': self.bridge2.return_name(),
+                                             'bridge3': self.bridge3.return_name(),
+                                             'frag1_smiles': frag1[1][0],
+                                             'frag2_smiles': frag2[1][0],
+                                             'frag3_smiles': frag3[1][0],
+                                             'frag4_smiles': frag4[1][0],
+                                             'frag1_func': func_1,
+                                             'frag2_func': func_2,
+                                             'frag3_func': func_3,
+                                             'frag4_func': func_4,
+                                             'bridge1_func': bridge1_func,
+                                             'bridge2_func': bridge2_func,
+                                             'bridge3_func': bridge3_func,
+                                             'macrocycle_smiles': full_macrocycle,
+                                             'coord_atoms_zero_index': coord_atoms_zero_index,
+                                             'coord_atoms_smicat': coord_atoms_smicat,
+                                             'coord_elements': coord_elements,
+                                             'formula': CalcMolFormula(m),
+                                             'charge': charge,
                                              'size': self.count_atoms(full_macrocycle),
-                                             'canonical_smiles':test
+                                             'canonical_smiles': test
                                              }
                                 results_dict_list.append(temp_dict)
                                 good.append((full_macrocycle, coord_atoms_smicat, charge))

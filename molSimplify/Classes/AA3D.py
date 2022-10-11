@@ -8,9 +8,9 @@
 
 class AA3D:
     """Holds information about an amino acid, used to do manipulations.  Reads information from structure file (pdb, cif) or is directly built from molsimplify.
-    
+
     """
-    
+
     def __init__(self, three_lc='GLY', chain='undef', id=-1, occup=1.00, loc=''):
         # List of atom3D objects
         self.atoms = []
@@ -41,15 +41,15 @@ class AA3D:
         self.loc = loc
         # Temporary list for storing conformations
         self.temp_list = []
-            
+
     def identify(self):
         """ States whether the amino acid is (positively/negatively) charged, polar, or hydrophobic.
-        
+
         Returns
         -------
         aa_type : string
             Positively charged, Negatively charged, Polar, Hydrophobic
-                
+
         """
         if self.three_lc == "ARG" or self.three_lc == "LYS":
             return "Positively charged"
@@ -59,20 +59,20 @@ class AA3D:
             return "Polar"
         else:
             return "Hydrophobic"
-            
+
     def getGreek(self, greek):
         """ Finds the Greek lettered carbon(s) or other atom(s) of the user's choice.
-        
+
         Parameters
         ----------
         greek : string
             The Greek lettered atom (e.g. alpha carbon) we want.  Inputs should be form 'CA' or similar.
-                
+
         Returns
         -------
         greek_atoms : list of atom3Ds
             A list of atom3D class objects that contains the Greek lettered atom(s) we want.
-                
+
         """
         greek_atoms = []
         for (ii, a) in self.atoms:
@@ -94,7 +94,7 @@ class AA3D:
             xyz = atom.coords()
             coord_string += "%s \t%f\t%f\t%f\n" % (atom.sym, xyz[0], xyz[1], xyz[2])
         return coord_string
-            
+
     def centermass(self):
         """Computes coordinates of center of mass of amino acid.
         Returns
@@ -215,11 +215,11 @@ class AA3D:
                 the amino acid that comes before self in the protein chain
         """
         self.prev = prev_aa
-                    
+
     def addAtom(self, atom, index=None):
-        """Adds an atom to the atoms attribute, which contains a list of 
-        atom3D class instances. 
-        
+        """Adds an atom to the atoms attribute, which contains a list of
+        atom3D class instances.
+
         Parameters
         ----------
             atom : atom3D
@@ -228,9 +228,9 @@ class AA3D:
                 Index of added atom. Default is None.
             auto_populate_BO_dict : bool, optional
                 Populate bond order dictionary with newly added atom. Default is True.
-        
+
         >>> C_atom = atom3D('C',[1, 1, 1])
-        >>> complex_mol.addAtom(C_atom) # Add carbon atom at cartesian position 1, 1, 1 to mol3D object. 
+        >>> complex_mol.addAtom(C_atom) # Add carbon atom at cartesian position 1, 1, 1 to mol3D object.
         """
 
         if index is None:

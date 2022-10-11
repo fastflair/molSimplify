@@ -7,20 +7,17 @@
 #
 #  Department of Chemical Engineering, MIT
 
-from numpy import (arccos, cross, dot, pi, transpose,
-                   sin, cos, mat, array, arctan2, sqrt)
-from numpy.linalg import det, svd
 import numpy as np
 
 
 def norm(u):
     """Get euclidean norm of vector.
-        
+
         Parameters
         ----------
             u : list
                 Vector of interest.
-            
+
         Returns
         -------
             norm : float
@@ -30,18 +27,18 @@ def norm(u):
     d = 0.0
     for u0 in u:
         d += (u0 * u0)
-    d = sqrt(d)
+    d = np.sqrt(d)
     return d
 
 
 def normalize(u):
     """Normalize a vector.
-        
+
         Parameters
         ----------
             u : list
                 Vector of interest.
-            
+
         Returns
         -------
             norm_vect : list
@@ -57,14 +54,14 @@ def normalize(u):
 
 def distance(r1, r2):
     """Euclidean distance between points.
-        
+
         Parameters
         ----------
             r1 : list
                 Coordinates of point 1.
             r2 : list
                 Coordinates of point 2.
-            
+
         Returns
         -------
             dist : float
@@ -74,20 +71,20 @@ def distance(r1, r2):
     dx = r1[0] - r2[0]
     dy = r1[1] - r2[1]
     dz = r1[2] - r2[2]
-    d = sqrt(dx ** 2 + dy ** 2 + dz ** 2)
+    d = np.sqrt(dx ** 2 + dy ** 2 + dz ** 2)
     return d
 
 
 def vecdiff(r1, r2):
     """Element-wise vector difference
-        
+
         Parameters
         ----------
             r1 : list
                 Vector 1.
             r2 : list
                 Vector 2.
-            
+
         Returns
         -------
             diff : list
@@ -100,14 +97,14 @@ def vecdiff(r1, r2):
 
 def midpt(r1, r2):
     """Vector midpoint.
-        
+
         Parameters
         ----------
             r1 : list
                 Vector 1.
             r2 : list
                 Vector 2.
-            
+
         Returns
         -------
             mid : list
@@ -120,7 +117,7 @@ def midpt(r1, r2):
 
 def checkcolinear(r1, r2, r3):
     """Checks if three points are collinear.
-        
+
         Parameters
         ----------
             r1 : list
@@ -129,7 +126,7 @@ def checkcolinear(r1, r2, r3):
                 Coordinates of point 2.
             r3 : list
                 Coordinates of point 3.
-            
+
         Returns
         -------
             collinear_flag : bool
@@ -138,7 +135,7 @@ def checkcolinear(r1, r2, r3):
     """
     dr1 = vecdiff(r2, r1)
     dr2 = vecdiff(r1, r3)
-    dd = cross(array(dr1), array(dr2))
+    dd = np.cross(np.array(dr1), np.array(dr2))
     if norm(dd) < 1.e-01:
         return True
     else:
@@ -147,7 +144,7 @@ def checkcolinear(r1, r2, r3):
 
 def checkplanar(r1, r2, r3, r4):
     """Checks if four points are coplanar.
-        
+
         Parameters
         ----------
             r1 : list
@@ -158,7 +155,7 @@ def checkplanar(r1, r2, r3, r4):
                 Coordinates of point 3.
             r4 : list
                 Coordinates of point 4.
-            
+
         Returns
         -------
             coplanar_flag : bool
@@ -168,8 +165,8 @@ def checkplanar(r1, r2, r3, r4):
     r31 = vecdiff(r3, r1)
     r21 = vecdiff(r2, r1)
     r43 = vecdiff(r4, r3)
-    cr0 = cross(array(r21), array(r43))
-    dd = dot(r31, cr0)
+    cr0 = np.cross(np.array(r21), np.array(r43))
+    dd = np.dot(r31, cr0)
     if abs(dd) < 1.e-1:
         return True
     else:
@@ -178,14 +175,14 @@ def checkplanar(r1, r2, r3, r4):
 
 def vecangle(r1, r2):
     """Computes angle between two vectors.
-        
+
         Parameters
         ----------
             r1 : list
                 Vector 1.
             r2 : list
                 Vector 2.
-            
+
         Returns
         -------
             theta : float
@@ -193,8 +190,8 @@ def vecangle(r1, r2):
 
     """
     if (norm(r2) * norm(r1) > 1e-16):
-        inner_prod = np.round(dot(r2, r1) / (norm(r2) * norm(r1)), 10)
-        theta = 180 * arccos(inner_prod) / pi
+        inner_prod = np.round(np.dot(r2, r1) / (norm(r2) * norm(r1)), 10)
+        theta = 180 * np.arccos(inner_prod) / np.pi
     else:
         theta = 0.0
     return theta
@@ -202,7 +199,7 @@ def vecangle(r1, r2):
 
 def getPointu(Rr, dist, u):
     """Gets point given reference point, direction vector and distance.
-        
+
         Parameters
         ----------
             Rr : list
@@ -211,7 +208,7 @@ def getPointu(Rr, dist, u):
                 Distance in angstroms.
             u : list
                 Direction vector.
-            
+
         Returns
         -------
             P : list
@@ -231,8 +228,8 @@ def getPointu(Rr, dist, u):
 
 
 def rotation_params(r0, r1, r2):
-    """Gets angle between three points (r10 and r21) and and the normal vector to the plane containing three points.
-        
+    """Gets angle between three points (r10 and r21) and the normal vector to the plane containing three points.
+
         Parameters
         ----------
             r0 : list
@@ -241,7 +238,7 @@ def rotation_params(r0, r1, r2):
                 Coordinates for point 2.
             r2 : list
                 Coordinates for point 3.
-            
+
         Returns
         -------
             theta : float
@@ -255,17 +252,17 @@ def rotation_params(r0, r1, r2):
     # print('r10 is ' +str(r10) )
     # print('r21 is ' +str(r21) )
     # angle between r10 and r21
-    # print('arg to arcos  is ' +str(dot(r21,r10)/(norm(r21)*norm(r10))) )
-    arg = dot(r21, r10) / (norm(r21) * norm(r10))
+    # print('arg to arcos  is ' +str(np.dot(r21,r10)/(norm(r21)*norm(r10))) )
+    arg = np.dot(r21, r10) / (norm(r21) * norm(r10))
     if (norm(r21) * norm(r10) > 1e-16):
         if arg < 0:
-            theta = 180 * arccos(max(-1, arg)) / pi
+            theta = 180 * np.arccos(max(-1, arg)) / np.pi
         else:
-            theta = 180 * arccos(min(1, arg)) / pi
+            theta = 180 * np.arccos(min(1, arg)) / np.pi
     else:
         theta = 0.0
     # get normal vector to plane r0 r1 r2
-    u = cross(r21, r10)
+    u = np.cross(r21, r10)
     # check for collinear case
     if norm(u) < 1e-16:
         # pick random perpendicular vector
@@ -280,7 +277,7 @@ def rotation_params(r0, r1, r2):
 
 def dihedral(mol, idx1, idx2, idx3, idx4):
     """Computes dihedral angle for a set of four atom indices.
-    
+
         Parameters
         ----------
             mol0 : mol3D
@@ -303,33 +300,33 @@ def dihedral(mol, idx1, idx2, idx3, idx4):
     v1 = np.array(r2)-np.array(r1)  # vector formed between atoms 1 and 2
     v2 = np.array(r3)-np.array(r2)  # vector formed between atoms 2 and 3
     v3 = np.array(r4)-np.array(r3)  # vector formed between atoms 3 and 4
-    
+
     v1_x_v2 = np.cross(v1, v2)  # cross product of v1 and v2
     v2_x_v3 = np.cross(v2, v3)  # cross product of v2 and v3
-    
+
     normal_1 = v1_x_v2/(np.linalg.norm(v1_x_v2))  # normal to the plane formed by 1,2,3
     normal_2 = v2_x_v3/(np.linalg.norm(v2_x_v3))  # normal to the plane formed by 2,3,4
-    
+
     unit_1 = v2/(np.linalg.norm(v2))
     unit_2 = np.cross(unit_1, normal_2)
-    
+
     cos_angle = np.dot(normal_1, normal_2)
     sine_angle = np.dot(normal_1, unit_2)
-    
+
     dihedral_angle = round(np.degrees(-np.arctan2(sine_angle, cos_angle)), 3)
     return dihedral_angle
 
 
 def kabsch(mol0, mol1):
-    """Aligns (translates and rotates) two molecules to minimize RMSD using the Kabsch algorithm
+    """Aligns (translates and rotates) two molecules to minimize RMSD using the Kabsch algorithm. 
 
         Parameters
         ----------
             mol0 : mol3D
-                mol3D class instance of molecule to be aligned.
+                mol3D class instance of molecule to be aligned. Will be translated and rotated.
             mol1 : mol3D
-                mol3D class instance of reference molecule.
-            
+                mol3D class instance of reference molecule. Will be translated.
+
         Returns
         -------
             mol0 : mol3D
@@ -339,9 +336,13 @@ def kabsch(mol0, mol1):
             d0 : list
                 Translation vector for mol0.
             d1 : list
-                Translation vector for mol1. 
+                Translation vector for mol1.
 
     """
+    if (mol0.getNumAtoms() != mol1.getNumAtoms()):
+        print(f'issue: {mol0.getNumAtoms()} != {mol1.getNumAtoms()}')
+        raise ValueError('The two molecules should have the same number of atoms.')
+
     # translate to align centroids with origin
     mol0, d0 = setPdistance(mol0, mol0.centersym(), [0, 0, 0], 0)
     mol1, d1 = setPdistance(mol1, mol1.centersym(), [0, 0, 0], 0)
@@ -351,7 +352,7 @@ def kabsch(mol0, mol1):
         P.append(atom0.coords())
         Q.append(atom1.coords())
     # Computation of the covariance matrix
-    C = dot(transpose(P), Q)
+    C = np.dot(np.transpose(P), Q)
     # Computation of the optimal rotation matrix
     # This can be done using singular value decomposition (SVD)
     # Getting the sign of the det(V)*(W) to decide
@@ -359,15 +360,15 @@ def kabsch(mol0, mol1):
     # right-handed coordinate system.
     # And finally calculating the optimal rotation matrix U
     # see http://en.wikipedia.org/wiki/Kabsch_algorithm
-    V, S, W = svd(C)
-    d = (det(V) * det(W)) < 0.0
+    V, S, W = np.linalg.svd(C)
+    d = (np.linalg.det(V) * np.linalg.det(W)) < 0.0
     # Create Rotation matrix U
     if d:
         S[-1] = -S[-1]
         V[:, -1] = -V[:, -1]
-    U = dot(V, W)
+    U = np.dot(V, W)
     # Rotate P
-    P = dot(P, U)
+    P = np.dot(P, U)
     # write back coordinates
     for i, atom in enumerate(mol0.getAtoms()):
         atom.setcoords(P[i])
@@ -385,7 +386,7 @@ def ReflectPlane(u, r, Rp):
                 Point to be reflected.
             Rp : list
                 Reference point on plane.
-            
+
         Returns
         -------
             rn : list
@@ -440,7 +441,7 @@ def PointRotateAxis(u, rp, r, theta):
     -------
         rotated : list
             Rotated point.
-    
+
     """
     # construct augmented vector rr = [r;1]
     rr = r
@@ -448,24 +449,24 @@ def PointRotateAxis(u, rp, r, theta):
     # rotation matrix about arbitrary line through rp
     R = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
     rn = [0, 0, 0]
-    R[0][0] = cos(theta) + u[0] ** 2 * (1 - cos(theta))
-    R[0][1] = u[0] * u[1] * (1 - cos(theta)) - u[2] * sin(theta)
-    R[0][2] = u[0] * u[2] * (1 - cos(theta)) + u[1] * sin(theta)
+    R[0][0] = np.cos(theta) + u[0] ** 2 * (1 - np.cos(theta))
+    R[0][1] = u[0] * u[1] * (1 - np.cos(theta)) - u[2] * np.sin(theta)
+    R[0][2] = u[0] * u[2] * (1 - np.cos(theta)) + u[1] * np.sin(theta)
     R[0][3] = (rp[0] * (u[1] ** 2 + u[2] ** 2) - u[0] *
-               (rp[1] * u[1] + rp[2] * u[2])) * (1 - cos(theta))
-    R[0][3] += (rp[1] * u[2] - rp[2] * u[1]) * sin(theta)
-    R[1][0] = u[1] * u[0] * (1 - cos(theta)) + u[2] * sin(theta)
-    R[1][1] = cos(theta) + u[1] ** 2 * (1 - cos(theta))
-    R[1][2] = u[1] * u[2] * (1 - cos(theta)) - u[0] * sin(theta)
+               (rp[1] * u[1] + rp[2] * u[2])) * (1 - np.cos(theta))
+    R[0][3] += (rp[1] * u[2] - rp[2] * u[1]) * np.sin(theta)
+    R[1][0] = u[1] * u[0] * (1 - np.cos(theta)) + u[2] * np.sin(theta)
+    R[1][1] = np.cos(theta) + u[1] ** 2 * (1 - np.cos(theta))
+    R[1][2] = u[1] * u[2] * (1 - np.cos(theta)) - u[0] * np.sin(theta)
     R[1][3] = (rp[1] * (u[0] ** 2 + u[2] ** 2) - u[1] *
-               (rp[0] * u[0] + rp[2] * u[2])) * (1 - cos(theta))
-    R[1][3] += (rp[2] * u[0] - rp[0] * u[2]) * sin(theta)
-    R[2][0] = u[2] * u[0] * (1 - cos(theta)) - u[1] * sin(theta)
-    R[2][1] = u[2] * u[1] * (1 - cos(theta)) + u[0] * sin(theta)
-    R[2][2] = cos(theta) + u[2] ** 2 * (1 - cos(theta))
+               (rp[0] * u[0] + rp[2] * u[2])) * (1 - np.cos(theta))
+    R[1][3] += (rp[2] * u[0] - rp[0] * u[2]) * np.sin(theta)
+    R[2][0] = u[2] * u[0] * (1 - np.cos(theta)) - u[1] * np.sin(theta)
+    R[2][1] = u[2] * u[1] * (1 - np.cos(theta)) + u[0] * np.sin(theta)
+    R[2][2] = np.cos(theta) + u[2] ** 2 * (1 - np.cos(theta))
     R[2][3] = (rp[2] * (u[0] ** 2 + u[1] ** 2) - u[2] *
-               (rp[0] * u[0] + rp[1] * u[1])) * (1 - cos(theta))
-    R[2][3] += (rp[0] * u[1] - rp[1] * u[0]) * sin(theta)
+               (rp[0] * u[0] + rp[1] * u[1])) * (1 - np.cos(theta))
+    R[2][3] += (rp[0] * u[1] - rp[1] * u[0]) * np.sin(theta)
     R[3][3] = 1
     # get new point
     rn[0] = R[0][0] * r[0] + R[0][1] * r[1] + R[0][2] * r[2] + R[0][3]
@@ -488,7 +489,7 @@ def PointRotateMat(r, R):
     -------
         rotated : list
             Rotated point.
-    
+
     """
     rn = [0, 0, 0]
     rn[0] = R[0][0] * r[0] + R[1][0] * r[1] + R[2][0] * r[2]
@@ -513,7 +514,7 @@ def PointTranslateSph(Rp, p0, D):
     -------
         p : list
             Translated point.
-    
+
     """
     # translate to origin
     ps = [0, 0, 0]
@@ -523,16 +524,16 @@ def PointTranslateSph(Rp, p0, D):
     # get initial spherical coords
     r0 = norm(ps)
     if (r0 < 1e-16):
-        phi0 = 0.5 * pi
+        phi0 = 0.5 * np.pi
         theta0 = 0
     else:
-        phi0 = arccos(ps[2] / r0)  # z/r
-        theta0 = arctan2(ps[1], ps[0])  # y/x
+        phi0 = np.arccos(ps[2] / r0)  # z/r
+        theta0 = np.arctan2(ps[1], ps[0])  # y/x
     # get new point
     p = [0, 0, 0]
-    p[0] = (D[0]) * sin(phi0 + D[2]) * cos(theta0 + D[1]) + Rp[0]
-    p[1] = (D[0]) * sin(phi0 + D[2]) * sin(theta0 + D[1]) + Rp[1]
-    p[2] = (D[0]) * cos(phi0 + D[2]) + Rp[2]
+    p[0] = (D[0]) * np.sin(phi0 + D[2]) * np.cos(theta0 + D[1]) + Rp[0]
+    p[1] = (D[0]) * np.sin(phi0 + D[2]) * np.sin(theta0 + D[1]) + Rp[1]
+    p[2] = (D[0]) * np.cos(phi0 + D[2]) + Rp[2]
     return p
 
 
@@ -552,7 +553,7 @@ def PointTranslateSphgivenphi(Rp, p0, D):
     -------
         p : list
             Translated point.
-    
+
     """
     # translate to origin
     ps = [0, 0, 0]
@@ -562,16 +563,16 @@ def PointTranslateSphgivenphi(Rp, p0, D):
     # get initial spherical coords
     r0 = norm(ps)
     if (r0 < 1e-16):
-        phi0 = 0.5 * pi
+        phi0 = 0.5 * np.pi
         theta0 = 0
     else:
-        phi0 = arccos(ps[2] / r0)  # z/r
-        theta0 = arctan2(ps[1], ps[0])  # y/x
+        phi0 = np.arccos(ps[2] / r0)  # z/r
+        theta0 = np.arctan2(ps[1], ps[0])  # y/x
     # get new point
     p = [0, 0, 0]
-    p[0] = (D[0]) * sin(phi0 + D[1]) * cos(theta0) + Rp[0]
-    p[1] = (D[0]) * sin(phi0 + D[1]) * sin(theta0) + Rp[1]
-    p[2] = (D[0]) * cos(phi0 + D[1]) + Rp[2]
+    p[0] = (D[0]) * np.sin(phi0 + D[1]) * np.cos(theta0) + Rp[0]
+    p[1] = (D[0]) * np.sin(phi0 + D[1]) * np.sin(theta0) + Rp[1]
+    p[2] = (D[0]) * np.cos(phi0 + D[1]) + Rp[2]
     return p
 
 
@@ -595,7 +596,7 @@ def PointTranslateSphgivenr(Rp, p0, D, pref, r):
     -------
         p : list
             Translated point.
-    
+
     """
     # translate to origin
     ps = [0, 0, 0]
@@ -605,19 +606,19 @@ def PointTranslateSphgivenr(Rp, p0, D, pref, r):
     # get initial spherical coords
     r0 = norm(ps)
     if (r0 < 1e-16):
-        phi0 = 0.5 * pi
+        phi0 = 0.5 * np.pi
         theta0 = 0
     else:
-        phi0 = arccos(ps[2] / r0)  # z/r
-        theta0 = arctan2(ps[1], ps[0])  # y/x
+        phi0 = np.arccos(ps[2] / r0)  # z/r
+        theta0 = np.arctan2(ps[1], ps[0])  # y/x
     # get new point
     p = [0, 0, 0]
     r0 = 0
     theta0 = 0
-    while abs(1 - r0 / r) > 0.01 and theta0 < 2 * pi:
-        p[0] = (D[0]) * sin(phi0 + D[1]) * cos(theta0) + Rp[0]
-        p[1] = (D[0]) * sin(phi0 + D[1]) * sin(theta0) + Rp[1]
-        p[2] = (D[0]) * cos(phi0 + D[1]) + Rp[2]
+    while abs(1 - r0 / r) > 0.01 and theta0 < 2 * np.pi:
+        p[0] = (D[0]) * np.sin(phi0 + D[1]) * np.cos(theta0) + Rp[0]
+        p[1] = (D[0]) * np.sin(phi0 + D[1]) * np.sin(theta0) + Rp[1]
+        p[2] = (D[0]) * np.cos(phi0 + D[1]) + Rp[2]
         r0 = distance(p, pref)
         theta0 += 0.01
     return p
@@ -649,16 +650,16 @@ def PointTranslatetoPSph(Rp, p0, D):
     # get current spherical coords
     r0 = norm(ps)
     if (r0 < 1e-16):
-        phi0 = 0.5 * pi
+        phi0 = 0.5 * np.pi
         theta0 = 0
     else:
-        phi0 = arccos(ps[2] / r0)  # z/r
-        theta0 = arctan2(ps[1], ps[0])  # y/x
+        phi0 = np.arccos(ps[2] / r0)  # z/r
+        theta0 = np.arctan2(ps[1], ps[0])  # y/x
     # get translation vector
     p = [0, 0, 0]
-    p[0] = D[0] * sin(phi0 + D[2]) * cos(theta0 + D[1])
-    p[1] = D[0] * sin(phi0 + D[2]) * sin(theta0 + D[1])
-    p[2] = D[0] * cos(phi0 + D[2])
+    p[0] = D[0] * np.sin(phi0 + D[2]) * np.cos(theta0 + D[1])
+    p[1] = D[0] * np.sin(phi0 + D[2]) * np.sin(theta0 + D[1])
+    p[2] = D[0] * np.cos(phi0 + D[2])
     return p
 
 
@@ -686,11 +687,11 @@ def PointRotateSph(Rp, p0, D):
     ps[1] = p0[1] - Rp[1]
     ps[2] = p0[2] - Rp[2]
     # build 3D rotation matrices about x,y,z axes
-    Mx = [[1, 0, 0], [0, cos(D[0]), -sin(D[0])], [0, sin(D[0]), cos(D[0])]]
-    My = [[cos(D[1]), 0, sin(D[1])], [0, 1, 0], [-sin(D[1]), 0, cos(D[1])]]
-    Mz = [[cos(D[2]), -sin(D[2]), 0], [sin(D[2]), cos(D[2]), 0], [0, 0, 1]]
+    Mx = [[1, 0, 0], [0, np.cos(D[0]), -np.sin(D[0])], [0, np.sin(D[0]), np.cos(D[0])]]
+    My = [[np.cos(D[1]), 0, np.sin(D[1])], [0, 1, 0], [-np.sin(D[1]), 0, np.cos(D[1])]]
+    Mz = [[np.cos(D[2]), -np.sin(D[2]), 0], [np.sin(D[2]), np.cos(D[2]), 0], [0, 0, 1]]
     # get full rotation matrix
-    M = array(mat(Mx) * mat(My) * mat(Mz))
+    M = np.array(np.mat(Mx) * np.mat(My) * np.mat(Mz))
     p = [0.0, 0.0, 0.0]
     # rotate atom and translate it back from origin
     p[0] = M[0][0] * ps[0] + M[0][1] * ps[1] + M[0][2] * ps[2] + Rp[0]
@@ -752,7 +753,7 @@ def rotate_around_axis(mol, Rp, u, theta):
 
     """
     un = norm(u)
-    theta = (theta / 180.0) * pi
+    theta = (theta / 180.0) * np.pi
     if (un > 1e-16):
         u[0] = u[0] / un
         u[1] = u[1] / un
@@ -877,7 +878,7 @@ def setcmdistance(mol, Rp, bond):
             Reference alignment point.
         bond : float
             Final distance of aligned point to alignment point
-        
+
     Returns
     -------
         mol : mol3D
@@ -913,7 +914,7 @@ def protate(mol, Rr, D):
             Origin of sphere.
         D : list
             [final radial distance, change in polar phi, change in azimuthal theta] in RADIANS
-        
+
     Returns
     -------
         mol : mol3D
@@ -922,8 +923,8 @@ def protate(mol, Rr, D):
     """
     # convert to rad
     D[0] = float(D[0])
-    D[1] = (float(D[1]) / 180.0) * pi
-    D[2] = (float(D[2]) / 180.0) * pi
+    D[1] = (float(D[1]) / 180.0) * np.pi
+    D[2] = (float(D[2]) / 180.0) * np.pi
     # rotate/translate about reference point
     # get center of mass
     pmc = mol.centermass()
@@ -946,9 +947,9 @@ def protateref(mol, Rr, Rref, D):
             Origin of sphere.
         Rref : list
             Reference point in molecule
-        D : list 
+        D : list
             [final radial distance, change in polar phi, change in azimuthal theta] in RADIANS
-        
+
     Returns
     -------
         mol : mol3D
@@ -958,8 +959,8 @@ def protateref(mol, Rr, Rref, D):
     # rotate/translate about reference point
     # convert to rad
     D[0] = float(D[0])
-    D[1] = (float(D[1]) / 180.0) * pi
-    D[2] = (float(D[2]) / 180.0) * pi
+    D[1] = (float(D[1]) / 180.0) * np.pi
+    D[2] = (float(D[2]) / 180.0) * np.pi
     # rotate/translate about reference point
     # get translation vector that corresponds to new coords
     Rt = PointTranslateSph(Rr, Rref, D)
@@ -976,9 +977,9 @@ def cmrotate(mol, D):
     ----------
         mol : mol3D
             mol3D class instance of molecule to be rotated.
-        D : list 
+        D : list
             [theta-x, theta-y, theta-z] in RADIANS
-        
+
     Returns
     -------
         mol : mol3D
@@ -986,9 +987,9 @@ def cmrotate(mol, D):
 
     """
     # convert to rad
-    D[0] = (float(D[0]) / 180.0) * pi
-    D[1] = (float(D[1]) / 180.0) * pi
-    D[2] = (float(D[2]) / 180.0) * pi
+    D[0] = (float(D[0]) / 180.0) * np.pi
+    D[1] = (float(D[1]) / 180.0) * np.pi
+    D[2] = (float(D[2]) / 180.0) * np.pi
     # perform rotation
     pmc = mol.centermass()
     for atom in mol.atoms:
@@ -1008,9 +1009,9 @@ def rotateRef(mol, Ref, D):
             mol3D class instance of molecule to be rotated.
         Ref : list
             Reference point
-        D : list 
+        D : list
             [theta-x, theta-y, theta-z] in RADIANS
-        
+
     Returns
     -------
         mol : mol3D
@@ -1018,9 +1019,9 @@ def rotateRef(mol, Ref, D):
 
     """
     # convert to rad
-    D[0] = (float(D[0]) / 180.0) * pi
-    D[1] = (float(D[1]) / 180.0) * pi
-    D[2] = (float(D[2]) / 180.0) * pi
+    D[0] = (float(D[0]) / 180.0) * np.pi
+    D[1] = (float(D[1]) / 180.0) * np.pi
+    D[2] = (float(D[2]) / 180.0) * np.pi
     # perform rotation
     for atom in mol.atoms:
         # Get new point after rotation
@@ -1042,7 +1043,7 @@ def aligntoaxis(mol, Rr, Rp, u):
             Reference point on axis
         u : list
             Target axis for alignment
-        
+
     Returns
     -------
         mol : mol3D
@@ -1078,7 +1079,7 @@ def aligntoaxis2(mol, Rr, Rp, u, d):
             Target axis for alignment
         d : float
             Final distance from aligned point to axis
-        
+
     Returns
     -------
         mol : mol3D
@@ -1110,7 +1111,7 @@ def alignPtoaxis(Rr, Rp, u, d):
             Target axis for alignment. Direction vector.
         d : float
             Final distance from aligned point to axis
-        
+
     Returns
     -------
         dxyz : list
@@ -1139,7 +1140,7 @@ def pmrotate(mol, Rp, D):
             Cartesian origin.
         D : list
             [theta-x, theta-y, theta-z] in DEGREES
-        
+
     Returns
     -------
         mol : mol3D
@@ -1147,9 +1148,9 @@ def pmrotate(mol, Rp, D):
 
     """
     # convert to rad
-    D[0] = (float(D[0]) / 180.0) * pi
-    D[1] = (float(D[1]) / 180.0) * pi
-    D[2] = (float(D[2]) / 180.0) * pi
+    D[0] = (float(D[0]) / 180.0) * np.pi
+    D[1] = (float(D[1]) / 180.0) * np.pi
+    D[2] = (float(D[2]) / 180.0) * np.pi
     # perform rotation
     for atom in mol.atoms:
         # Get new point after rotation
@@ -1174,7 +1175,7 @@ def connectivity_match(inds1, inds2, mol1, mol2):
             mol3D class instance for molecule 1.
         mol2 : mol3D
             mol3D class instance for molecule 2.
-        
+
     Returns
     -------
         match_flag : bool
@@ -1191,3 +1192,30 @@ def connectivity_match(inds1, inds2, mol1, mol2):
         _mol2.createMolecularGraph()
         match = np.array_equal(_mol1.graph, _mol2.graph)
     return match
+
+
+def best_fit_plane(coordinates):
+    """Finds the best fitting plane to a set of atoms at the specified coordinates.
+
+    Parameters
+    ----------
+        corerefcoords : np.array
+            Coordinates of atoms for which the best fitting plane is to be found. Shape is 3 x N.
+
+    Returns
+    -------
+        normal_vector_plane : np.array
+            The vector perpendicular to the best fitting plane.
+
+    """
+    # Solution from stack exchange    
+
+    # subtract out the centroid and take the SVD
+    svd = np.linalg.svd(coordinates - np.mean(coordinates, axis=1, keepdims=True))
+
+    # Extract the left singular vectors
+    left = svd[0]
+
+    # the corresponding left singular vector is the normal vector of the best-fitting plane
+    normal_vector_plane = left[:, -1]
+    return normal_vector_plane

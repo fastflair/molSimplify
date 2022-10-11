@@ -130,9 +130,8 @@ def ensemble_uq(predictor, descriptors=False, descriptor_names=False, suffix=Fal
     # print('models', model_list)
     for idx, model in enumerate(model_list):
         _base = model.split('.')[0]
-        json_file = open(_base + '.json', 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
+        with open(_base + '.json', 'r') as json_file:
+            loaded_model_json = json_file.read()
         loaded_model = model_from_json(loaded_model_json)
         # load weights into  model
         loaded_model.load_weights(model)
@@ -243,9 +242,8 @@ def latent_space_uq(predictor, layer_index=-2, descriptors=False, descriptor_nam
     dist_list = []
     for model in model_list:
         _base = model.split('.')[0]
-        json_file = open(_base + '.json', 'r')
-        loaded_model_json = json_file.read()
-        json_file.close()
+        with open(_base + '.json', 'r') as json_file:
+            loaded_model_json = json_file.read()
         loaded_model = model_from_json(loaded_model_json)
         loaded_model.load_weights(model)
         loaded_model.compile(loss="mse", optimizer='adam',

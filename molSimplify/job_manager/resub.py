@@ -41,7 +41,7 @@ def kill_jobs(kill_names, message1='Killing job: ', message2=' early'):
         print(message1 + name + message2)
         if machine in ['gibraltar']:
             tools.call_bash('qdel ' + str(id_))
-        elif machine in ['comet', 'bridges']:
+        elif machine in ['comet', 'bridges','expanse']:
             tools.call_bash('scancel '+str(id_))
         else:
             raise ValueError('Sardines.')
@@ -326,9 +326,8 @@ def main():
             print("****** Assessing Job Status ******")
             print('**********************************')
             time1 = time.time()
-            fil = open('complete', 'w')
-            fil.write('Active')
-            fil.close()
+            with open('complete', 'w') as fil:
+                fil.write('Active')
 
             number_resubmitted, number_active, hit_queue_limit = resub()
 
@@ -353,9 +352,8 @@ def main():
         print('**********************************')
         print("****** Normal Terminatation ******")
         print('**********************************')
-        fil = open('complete', 'w')
-        fil.write('True')
-        fil.close()
+        with open('complete', 'w') as fil:
+            fil.write('True')
     else:
         resub_psi4(configure_dict["psi4_config"])
 

@@ -4,3 +4,4 @@
 -ligocc 4,1
 -ligloc True
 -keepHs True
+-ffoption BA

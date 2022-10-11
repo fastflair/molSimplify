@@ -484,17 +484,18 @@ def cleaninput(args):
         opts = args.ffoption
         if 'ba' in opts[0].lower():
             args.ffoption = 'ba'
+        elif 'no' in opts[0].lower() or 'n' in opts[0].lower():
+            args.ffoption = 'no'
+        elif 'l' in opts[0].lower():
+            args.ffoption = 'l' # ligands.dict control
         else:
-            if 'no' in opts[0].lower() or 'n' in opts[0].lower():
-                args.ffoption = 'no'
-            else:
-                args.ffoption = ''
-                for op in opts:
-                    op = op.strip(' ')
-                    if op[0].lower() == 'b':
-                        args.ffoption += 'b'
-                    if op[0].lower() == 'a':
-                        args.ffoption += 'a'
+            args.ffoption = ''
+            for op in opts:
+                op = op.strip(' ')
+                if op[0].lower() == 'b':
+                    args.ffoption += 'b'
+                if op[0].lower() == 'a':
+                    args.ffoption += 'a'
 
 # Generates input file from command line input
 #  @param args Namespace of arguments
@@ -507,11 +508,10 @@ def parseCLI(args):
     s = [_f for _f in cliargs.split(' -') if _f]
     # fname = args.core[0] + '.inp'
     fname = 'CLIinput.inp'
-    f = open(fname, 'w')
-    f.write('# molSimplify input file generated from CLI input\n')
-    for line in s:
-        f.write('-'+line+'\n')
-    f.close()
+    with open(fname, 'w') as f:
+        f.write('# molSimplify input file generated from CLI input\n')
+        for line in s:
+            f.write('-'+line+'\n')
     return fname
 
 # Parses input file
@@ -535,7 +535,8 @@ def parseinputfile(args, inputfile_str=None):
     if inputfile_str:
         inputfile_lines = inputfile_str.split('\n')
     else:
-        inputfile_lines = open(args.i)
+        with open(args.i) as f:
+            inputfile_lines = f.readlines()
 
     for line in inputfile_lines:
         # For arguments that cannot accept smiles as args, split possible comments
@@ -1129,7 +1130,7 @@ def parseinputs_basic(*p):
     parser.add_argument(
         "-ff", help="select force field for FF optimization. Available: (default) MMFF94, UFF, GAFF, Ghemical, XTB, GFNFF", default='uff')
     parser.add_argument(
-        "-ffoption", help="select when to perform FF optimization. Options: B(Before),A(After), (default) BA, N(No)", default='BA')
+        "-ffoption", help="select when to perform FF optimization. Options: B(Before), A(After), BA(Before and after), N(default, no force field), L(ligands.dict controlled)", default='N')
     parser.add_argument(
         "-ff_final_opt", help="optionally select different force field for "
         "final FF optimization after structure generation (defaults to option"

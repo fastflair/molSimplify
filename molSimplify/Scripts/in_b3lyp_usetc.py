@@ -2,7 +2,7 @@
 # Currently, this script only work off the shell for lacvps_ecp
 # (6-31g* for period 1-3 atoms and lanl2dz for others)
 # It can easily been generalized to other basis sets by modifying
-# the shell_sequence_mapping function in molden2psi4wfn and 
+# the shell_sequence_mapping function in molden2psi4wfn and
 # change the corresponding Psi4 setting in this script.
 # Written by Chenru Duan at 09/17/2020.
 import psi4

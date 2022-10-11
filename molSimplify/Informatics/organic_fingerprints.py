@@ -4,7 +4,7 @@ from rdkit.Chem.AtomPairs import Torsions
 from molSimplify.Classes.mol3D import mol3D
 
 
-# Nice explanation of fingerprints here: 
+# Nice explanation of fingerprints here:
 # https://www.rdkit.org/UGM/2012/Landrum_RDKit_UGM.Fingerprints.Final.pptx.pdf
 # Nice tutorial here:
 # https://www.rdkit.org/docs/GettingStartedInPython.html
@@ -16,26 +16,27 @@ from molSimplify.Classes.mol3D import mol3D
 # of the mol3D class. RDKit has functionality for
 # drawing the necessary bits --> DrawMorganBit
 # @param --> mol3D class of molecule, returns fingerprint
-def get_morgan(mol, morgan_radius = 4):
-    if isinstance(mol,mol3D):
+def get_morgan(mol, morgan_radius=4):
+    if isinstance(mol, mol3D):
         smiles = mol.get_smiles(use_mol2=True)
-    elif isinstance(mol,str):
+    elif isinstance(mol, str):
         smiles = mol
     m = Chem.MolFromSmiles(smiles)
     # empty bit dictionary that gets populated
     # Morgan FPs should be compared with tanimoto similarity
     # By default, Morgan FPs have 2048 bits.
     bit_vector = {}
-    morgan_fingerprint_vector = AllChem.GetMorganFingerprintAsBitVect(m, radius=morgan_radius,bitInfo=bit_vector)
+    morgan_fingerprint_vector = AllChem.GetMorganFingerprintAsBitVect(m, radius=morgan_radius, bitInfo=bit_vector)
     return bit_vector
 
+
 def get_substructure_smiles(mol, atomID, radius):
-    if isinstance(mol,mol3D):
+    if isinstance(mol, mol3D):
         smiles = mol.get_smiles(use_mol2=True)
-    elif isinstance(mol,str):
+    elif isinstance(mol, str):
         smiles = mol
     m = Chem.MolFromSmiles(smiles)
-    if radius>0:
+    if radius > 0:
         environment_morgan = Chem.FindAtomEnvironmentOfRadiusN(m, radius, atomID)
         atoms_to_use = []
         for b in environment_morgan:
@@ -45,10 +46,9 @@ def get_substructure_smiles(mol, atomID, radius):
     else:
         atoms_to_use = [atomID]
         environment_morgan = None
-    smiles_1 = Chem.MolFragmentToSmiles(m,atoms_to_use,bondsToUse=environment_morgan,allHsExplicit=True, allBondsExplicit=True, rootedAtAtom=atomID)
+    smiles_1 = Chem.MolFragmentToSmiles(m, atoms_to_use, bondsToUse=environment_morgan,
+                                        allHsExplicit=True, allBondsExplicit=True, rootedAtAtom=atomID)
     return smiles_1
-
-
 
 # bit_vector_benzene = get_morgan(mol='c1ccccc1')
 # smi = get_substructure_smiles('c1ccccc1',list(bit_vector_benzene.values())[0][0][0],list(bit_vector_benzene.values())[0][0][1])

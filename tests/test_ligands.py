@@ -1,9 +1,14 @@
 import pytest
+from molSimplify.Classes.mol3D import mol3D
 from molSimplify.Scripts.io import readdict, lig_load
 from pkg_resources import resource_filename, Requirement
 from os import listdir
 from os.path import isfile, join
 
+
+path_folder = resource_filename(
+    Requirement.parse("molSimplify"), "molSimplify/Ligands/"
+)
 path_dict = resource_filename(
     Requirement.parse("molSimplify"), "molSimplify/Ligands/ligands.dict"
 )
@@ -16,7 +21,8 @@ def test_ligands_dict(lig_name):
     assert len(lig_dict[lig_name]) == 6
     lig, emsg = lig_load(lig_name)
     # Assert that the ligand could be loaded
-    assert emsg is False
+    assert type(lig) == mol3D
+    assert emsg == ''
     # Assert that the charge of the loaded ligand equals the
     # charge noted in ligands.dict
     charge = int(lig_dict[lig_name][-1][0])
@@ -30,6 +36,24 @@ def test_ligands_dict(lig_name):
     elif "tetradentate" in group:
         assert len(connecting_atoms) == 4
 
+    # Test that there is no style mistake (additional or missing spaces)
+    # in the charge line of .mol files
+    if lig_dict[lig_name][0].endswith('.mol'):
+        with open(f'{path_folder}/{lig_dict[lig_name][0]}') as fin:
+            lines = fin.readlines()
+        for line in lines:
+            if 'CHG' in line:
+                # Should be in the following format:
+                # "M  CHGnn8 aaa vvv\n"
+                # Where 'n' the number first number after 'CHG' states how
+                # many atom/charge pairs (8 characters each) follow.
+                n_charges = int(line[6:9])
+                # 9 characters including 'n' plus 1 for the newline '/n'
+                assert len(line) == 10 + n_charges * 8
+                sp = line.split()
+                # Recheck that the sum of all charges is the same as the
+                # charge listed in ligands.dict
+                assert sum([int(s) for s in sp[4::2]]) == charge
 
 def test_no_repeats():
     # This test ensures no key is used more than once in ligands.dict.
@@ -48,9 +72,6 @@ def test_no_repeats():
     assert len(repeated_keys) == 0
 
 
-path_folder = resource_filename(
-    Requirement.parse("molSimplify"), "molSimplify/Ligands/"
-)
 # Identify the files in the Ligands folder.
 my_files = [f for f in listdir(path_folder) if isfile(join(path_folder, f))]
 # Keep only the files that end in .mol or .xyz
